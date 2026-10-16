@@ -1,118 +1,204 @@
+/* ── SignalForge IncidentTable — High-Density SOC Triage Grid ─── */
+
 .tableWrapper {
   width: 100%;
   overflow-x: auto;
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
   background: var(--color-bg-card);
 }
 
 .table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 0.8125rem;
   text-align: left;
 }
 
-.table th {
-  padding: var(--space-3) var(--space-4);
+/* ── Table Header ─────────────────────────────────────────────── */
+.table thead {
   background: var(--color-bg-surface);
-  color: var(--color-text-muted);
-  font-size: 0.7rem;
-  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.table th {
+  padding: 12px 16px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
   border-bottom: 1px solid var(--color-border);
   white-space: nowrap;
 }
 
-.table td {
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--color-border);
-  vertical-align: middle;
+/* Column Specific Header Alignments */
+.thSeverity { width: 105px; }
+.thRisk     { width: 115px; }
+.thUser     { width: 180px; }
+.thRules    { min-width: 200px; }
+.thTime     { width: 230px; }
+.thEvents   { width: 85px; text-align: center; }
+.thTriage   { min-width: 240px; }
+.thStatus   { width: 95px; }
+.thActions  { width: 140px; text-align: right; }
+
+/* ── Table Rows ───────────────────────────────────────────────── */
+.row {
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    transform var(--transition-fast);
+  cursor: pointer;
+  border-left: 4px solid transparent;
 }
 
-.row {
-  cursor: pointer;
-  transition: background var(--transition-fast);
+.table tbody tr:not(:last-child) td {
+  border-bottom: 1px solid var(--color-border);
 }
 
 .row:hover {
   background: var(--color-bg-card-hover);
 }
 
-.row:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: -2px;
+/* Severity Stripe on Left Border */
+.sev_critical {
+  border-left-color: var(--color-critical) !important;
+}
+.sev_critical:hover {
+  background: linear-gradient(90deg, var(--color-critical-dim) 0%, var(--color-bg-card-hover) 35%);
 }
 
+.sev_high {
+  border-left-color: var(--color-high) !important;
+}
+.sev_high:hover {
+  background: linear-gradient(90deg, var(--color-high-dim) 0%, var(--color-bg-card-hover) 35%);
+}
+
+.sev_medium {
+  border-left-color: var(--color-medium) !important;
+}
+
+.sev_low {
+  border-left-color: var(--color-low) !important;
+}
+
+/* Selected Row State */
 .selectedRow {
-  background: rgba(0, 212, 255, 0.08) !important;
-  border-left: 3px solid var(--color-accent);
+  background: var(--color-accent-dim) !important;
+  box-shadow: inset 0 0 0 1px var(--color-accent);
 }
 
+/* Acknowledged State */
 .acknowledgedRow {
-  opacity: 0.6;
+  opacity: 0.68;
 }
-
 .acknowledgedRow:hover {
-  opacity: 0.9;
+  opacity: 0.95;
 }
 
-/* Specific columns */
-.thSeverity, .cellSeverity {
-  width: 80px;
+/* ── Cell Elements ────────────────────────────────────────────── */
+.table td {
+  padding: 12px 16px;
+  vertical-align: middle;
 }
 
-.thRisk, .cellRisk {
-  width: 110px;
+/* Severity */
+.severityWrapper {
+  display: inline-flex;
+  align-items: center;
 }
 
+/* Risk Score & Progress */
 .riskContainer {
   display: flex;
-  align-items: center;
-  gap: var(--space-2);
+  flex-direction: column;
+  gap: 4px;
+  width: 90px;
+}
+
+.riskHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
 }
 
 .riskNumber {
   font-family: var(--font-mono);
-  font-weight: 700;
-  font-size: 0.875rem;
-  min-width: 28px;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.riskMax {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  color: var(--color-text-muted);
 }
 
 .riskBarTrack {
-  flex: 1;
   height: 4px;
-  background: var(--color-bg-surface);
-  border-radius: 2px;
+  background: rgba(100, 116, 139, 0.2);
+  border-radius: var(--radius-full);
   overflow: hidden;
 }
 
 .riskBarFill {
   height: 100%;
-  border-radius: 2px;
+  border-radius: var(--radius-full);
   transition: width 0.3s ease;
 }
 
-.thUser, .cellUser {
-  min-width: 140px;
+/* User & Identity */
+.userCard {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.userAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-accent-dim);
+  border: 1px solid var(--color-border-bright);
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.userMeta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .username {
-  display: block;
-  font-weight: 600;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 700;
   color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .incidentId {
-  display: block;
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   color: var(--color-text-muted);
+  white-space: nowrap;
 }
 
-.thRules, .cellRules {
-  max-width: 200px;
-}
-
+/* Triggered Rules */
 .ruleBadges {
   display: flex;
   flex-wrap: wrap;
@@ -120,170 +206,245 @@
 }
 
 .ruleBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 2px 8px;
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
-  padding: 1px 6px;
   border-radius: var(--radius-sm);
-  font-size: 0.7rem;
   color: var(--color-text-secondary);
   white-space: nowrap;
-  max-width: 160px;
+  max-width: 220px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.thTime, .cellTime {
-  min-width: 160px;
+.ruleBadgeDot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  flex-shrink: 0;
+}
+
+/* Time Range */
+.timeWrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.timeIcon {
+  width: 14px;
+  height: 14px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
 }
 
 .timeText {
   font-family: var(--font-mono);
-  font-size: 0.725rem;
+  font-size: 0.75rem;
   color: var(--color-text-secondary);
-  white-space: nowrap;
 }
 
-.thEvents, .cellEvents {
-  width: 60px;
+/* Event Count */
+.cellEvents {
   text-align: center;
 }
 
 .eventCountBadge {
-  display: inline-block;
-  padding: 1px 6px;
-  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
   background: var(--color-bg-surface);
-  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
   font-family: var(--font-mono);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
 }
 
-.thTriage, .cellTriage {
-  max-width: 220px;
+.eventIcon {
+  width: 12px;
+  height: 12px;
+  color: var(--color-text-muted);
+}
+
+/* Recommended Triage */
+.triageCallout {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  max-width: 320px;
+}
+
+.triageIcon {
+  color: var(--color-accent);
+  font-size: 0.75rem;
+  flex-shrink: 0;
 }
 
 .triageText {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
   font-size: 0.75rem;
-  color: var(--color-text-muted);
-  line-height: 1.35;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.thStatus, .cellStatus {
-  width: 95px;
-}
-
+/* Status Badges */
 .activeBadge {
-  display: inline-block;
-  font-size: 0.6875rem;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  background: rgba(0, 212, 255, 0.1);
-  color: var(--color-accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent-dim);
   border: 1px solid var(--color-accent);
+  color: var(--color-accent);
   font-family: var(--font-mono);
-  text-transform: uppercase;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.activeDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  box-shadow: 0 0 6px var(--color-accent);
 }
 
 .ackBadge {
-  display: inline-block;
-  font-size: 0.6875rem;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  background: rgba(122, 159, 192, 0.1);
-  color: var(--color-text-secondary);
-  border: 1px solid var(--color-text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  background: var(--color-low-dim);
+  border: 1px solid var(--color-low);
+  color: var(--color-low);
   font-family: var(--font-mono);
-  text-transform: uppercase;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
-.thActions, .cellActions {
-  width: 120px;
+/* Action Buttons */
+.cellActions {
+  text-align: right;
 }
 
 .actionButtonGroup {
-  display: flex;
-  gap: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .inspectBtn {
-  font-size: 0.725rem;
-  padding: 3px 8px;
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-bright);
-  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  background: var(--color-accent-dim);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
   color: var(--color-accent);
+  font-size: 0.75rem;
+  font-weight: 700;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
 .inspectBtn:hover {
-  background: var(--color-accent-dim);
-  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+  box-shadow: 0 0 12px var(--color-accent-glow);
+  transform: translateY(-1px);
 }
 
 .ackBtn {
-  font-size: 0.725rem;
-  padding: 3px 8px;
+  padding: 5px 10px;
   background: transparent;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
 .ackBtn:hover {
-  background: rgba(105, 240, 174, 0.1);
   border-color: var(--color-low);
   color: var(--color-low);
+  background: var(--color-low-dim);
 }
 
 .unackBtn {
-  font-size: 0.725rem;
-  padding: 3px 8px;
+  padding: 5px 10px;
   background: transparent;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
 .unackBtn:hover {
-  background: rgba(255, 112, 67, 0.1);
-  border-color: var(--color-high);
-  color: var(--color-high);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
-/* Empty state */
+/* ── Empty State ──────────────────────────────────────────────── */
 .emptyContainer {
+  padding: var(--space-12) var(--space-6);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
-  padding: var(--space-12) var(--space-6);
   text-align: center;
+  gap: var(--space-3);
+}
+
+.emptyIconRing {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--color-low-dim);
+  border: 1px solid var(--color-low);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-low);
+  box-shadow: 0 0 16px var(--color-low-glow);
 }
 
 .emptyIcon {
-  width: 40px;
-  height: 40px;
-  color: var(--color-text-muted);
+  width: 24px;
+  height: 24px;
 }
 
 .emptyTitle {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: var(--color-text-secondary);
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
 }
 
 .emptyDesc {
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   color: var(--color-text-muted);
 }

@@ -1,115 +1,287 @@
+/* ── SignalForge Application Shell TopNav ─────────────────────── */
+
 .nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-3) var(--space-6);
-  background: var(--color-bg-surface);
-  border-bottom: 1px solid var(--color-border);
   position: sticky;
   top: 0;
   z-index: var(--z-nav);
-  backdrop-filter: blur(8px);
-  gap: var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-8);
+  height: 64px;
+  background: var(--color-bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  transition: background var(--transition-normal), border-color var(--transition-normal);
 }
 
-/* Brand */
+/* ── Brand Identity ───────────────────────────────────────────── */
 .brand {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  flex-shrink: 0;
+  text-decoration: none;
+  color: inherit;
 }
 
-.logo {
-  width: 28px;
-  height: 28px;
-  color: var(--color-accent);
-  filter: drop-shadow(0 0 6px var(--color-accent-glow));
+.logoMark {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-accent-dim);
+  border: 1px solid var(--color-border-bright);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 0 16px var(--color-accent-glow);
   flex-shrink: 0;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.logoMark:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 24px var(--color-accent-glow);
+}
+
+.logoSvg {
+  width: 24px;
+  height: 24px;
+}
+
+.brandText {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.brandRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .brandName {
   font-size: 1.125rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: -0.03em;
   color: var(--color-text-primary);
-  white-space: nowrap;
+  line-height: 1.2;
 }
 
 .brandAccent {
   color: var(--color-accent);
-  text-shadow: 0 0 12px var(--color-accent-glow);
+  background: linear-gradient(135deg, var(--color-accent-light) 0%, var(--color-accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-.subtitle {
-  font-size: 0.6875rem;
-  font-weight: 400;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-text-secondary);
-  padding: 2px 8px;
-  border: 1px solid var(--color-border);
+.brandTag {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 1px 6px;
   border-radius: var(--radius-sm);
-  white-space: nowrap;
+  background: var(--color-accent-dim);
+  border: 1px solid var(--color-accent);
+  color: var(--color-accent);
 }
 
-/* Controls */
+.brandTagline {
+  font-size: 0.6875rem;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.01em;
+  font-weight: 400;
+}
+
+/* ── Center Metadata ──────────────────────────────────────────── */
+.centerMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.envPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--color-text-secondary);
+}
+
+.envDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  box-shadow: 0 0 6px var(--color-accent);
+}
+
+/* ── Controls Section ─────────────────────────────────────────── */
 .controls {
   display: flex;
   align-items: center;
   gap: var(--space-4);
-  flex-shrink: 0;
 }
 
-/* Status pill */
+/* ── Engine Status Pill ───────────────────────────────────────── */
 .statusPill {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: 3px 10px;
-  border-radius: 99px;
+  gap: 7px;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
   font-family: var(--font-mono);
   font-size: 0.6875rem;
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: 0.08em;
-  border: 1px solid;
-  transition: all var(--transition-normal);
+  border: 1px solid transparent;
+  transition: all var(--transition-fast);
 }
 
-.statusPill.idle    { color: var(--color-text-secondary); border-color: var(--color-border); background: transparent; }
-.statusPill.running { color: var(--color-low);   border-color: var(--color-low);   background: var(--color-low-dim); }
-.statusPill.paused  { color: var(--color-medium); border-color: var(--color-medium); background: var(--color-medium-dim); }
-.statusPill.error   { color: var(--color-critical); border-color: var(--color-critical); background: var(--color-critical-dim); }
-
-/* Status dot */
 .dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: currentColor;
   flex-shrink: 0;
-  position: relative;
 }
 
-.pulseDot::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: currentColor;
-  animation: pulse-ring 1.5s ease-out infinite;
+.statusLabel {
+  line-height: 1;
 }
 
-/* Clock */
-.clock {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
+/* Status variants */
+.idle {
+  background: rgba(100, 116, 139, 0.12);
+  border-color: rgba(100, 116, 139, 0.28);
   color: var(--color-text-secondary);
-  letter-spacing: 0.04em;
+}
+.idle .dot {
+  background: var(--color-text-muted);
+}
+
+.running {
+  background: rgba(37, 99, 235, 0.15);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  box-shadow: 0 0 12px var(--color-accent-glow);
+}
+.running .dot {
+  background: var(--color-accent);
+  box-shadow: 0 0 8px var(--color-accent);
+}
+
+.pulseDot {
+  animation: pulse-ring 1.8s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+.paused {
+  background: var(--color-medium-dim);
+  border-color: var(--color-medium);
+  color: var(--color-medium);
+}
+.paused .dot {
+  background: var(--color-medium);
+}
+
+.error {
+  background: var(--color-critical-dim);
+  border-color: var(--color-critical);
+  color: var(--color-critical);
+  box-shadow: 0 0 12px var(--color-critical-glow);
+}
+.error .dot {
+  background: var(--color-critical);
+}
+
+/* ── UTC Clock ────────────────────────────────────────────────── */
+.clock {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  padding: 5px 12px;
+  border-radius: var(--radius-md);
   white-space: nowrap;
 }
 
+.clockIcon {
+  width: 14px;
+  height: 14px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.clockText {
+  color: var(--color-text-primary);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.clockUtc {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--color-accent);
+  background: var(--color-accent-dim);
+  padding: 1px 4px;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.05em;
+}
+
+/* ── Theme Toggle Button ──────────────────────────────────────── */
+.themeToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.themeToggle:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: var(--color-accent-dim);
+  box-shadow: 0 0 14px var(--color-accent-glow);
+  transform: translateY(-1px);
+}
+
+.themeIcon {
+  width: 18px;
+  height: 18px;
+}
+
+/* ── Responsive ───────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .centerMeta {
+    display: none;
+  }
+}
+
 @media (max-width: 640px) {
-  .subtitle { display: none; }
-  .clock    { display: none; }
+  .nav {
+    padding: 0 var(--space-4);
+  }
+  .brandTagline {
+    display: none;
+  }
+  .clock {
+    display: none;
+  }
 }

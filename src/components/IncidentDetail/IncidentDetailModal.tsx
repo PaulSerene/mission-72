@@ -1,10 +1,10 @@
 /**
- * IncidentDetailModal — Mission 72
+ * IncidentDetailModal — SignalForge Incident Investigation
  *
  * Full investigation panel for a selected incident:
  * - Incident header with ID, severity, risk score & qualitative interpretation
  * - Primary account, time range, event count
- * - Narrative explanation
+ * - Structured narrative explanation & behavioral observations
  * - Recommended triage steps
  * - Triggered rules with MITRE tactics & descriptions
  * - Normalized evidence events table (resolved against state.events)
@@ -88,6 +88,21 @@ export function IncidentDetailModal() {
     })
   }, [incident, eventMap])
 
+  // Split narrative into summary and observations
+  const { summaryText, observations } = useMemo(() => {
+    if (!incident) return { summaryText: '', observations: [] }
+    const expl = incident.explanation
+    if (expl.includes('Observations:')) {
+      const [sumPart, obsPart] = expl.split('Observations:')
+      const obsList = obsPart
+        .split(';')
+        .map(s => s.trim())
+        .filter(Boolean)
+      return { summaryText: sumPart.trim(), observations: obsList }
+    }
+    return { summaryText: expl, observations: [] }
+  }, [incident])
+
   // Close on Escape key
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -123,7 +138,11 @@ export function IncidentDetailModal() {
             <div className={styles.headerBadges}>
               <SeverityBadge severity={incident.severity} />
               <span className={styles.incidentIdBadge}>{incident.id}</span>
-              {isAck && <span className={styles.ackBadge}>ACKNOWLEDGED</span>}
+              {isAck ? (
+                <span className={styles.ackBadge}>ACKNOWLEDGED</span>
+              ) : (
+                <span className={styles.activePill}>ACTIVE INVESTIGATION</span>
+              )}
             </div>
             <button
               id="btn-close-incident-detail"
@@ -132,7 +151,9 @@ export function IncidentDetailModal() {
               onClick={() => selectIncident(null)}
               aria-label="Close investigation panel"
             >
-              ×
+              <svg viewBox="0 0 24 24" fill="none" width="16" height="16" aria-hidden="true">
+                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
             </button>
           </div>
 
@@ -142,13 +163,15 @@ export function IncidentDetailModal() {
 
           <div className={styles.metaRow}>
             <span className={styles.metaItem}>
-              <strong>Start:</strong> {new Date(incident.startTimestamp).toUTCString()}
+              <span className={styles.metaLabel}>TIMELINE START:</span> {new Date(incident.startTimestamp).toUTCString()}
             </span>
+            <span className={styles.metaSep}>•</span>
             <span className={styles.metaItem}>
-              <strong>End:</strong> {new Date(incident.endTimestamp).toUTCString()}
+              <span className={styles.metaLabel}>TIMELINE END:</span> {new Date(incident.endTimestamp).toUTCString()}
             </span>
+            <span className={styles.metaSep}>•</span>
             <span className={styles.metaItem}>
-              <strong>Evidence Events:</strong> {totalEvents}
+              <span className={styles.metaLabel}>EVIDENCE EVENTS:</span> {totalEvents}
             </span>
           </div>
         </header>
@@ -158,10 +181,12 @@ export function IncidentDetailModal() {
           {/* Risk Score Meter & Interpretation */}
           <section className={styles.riskCard}>
             <div className={styles.riskHeader}>
-              <span className={styles.riskScoreLabel}>Risk Score</span>
-              <span className={styles.riskScoreVal} style={{ color: riskInfo.color }}>
-                {incident.riskScore} <span className={styles.riskScoreMax}>/ 100</span>
-              </span>
+              <div className={styles.riskScoreGroup}>
+                <span className={styles.riskScoreLabel}>COMPOSITE RISK SCORE</span>
+                <span className={styles.riskScoreVal} style={{ color: riskInfo.color }}>
+                  {incident.riskScore} <span className={styles.riskScoreMax}>/ 100</span>
+                </span>
+              </div>
               <span className={styles.riskTierBadge} style={{ color: riskInfo.color, borderColor: riskInfo.color }}>
                 {riskInfo.label}
               </span>
@@ -178,29 +203,44 @@ export function IncidentDetailModal() {
             <p className={styles.riskInterpretation}>{riskInfo.text}</p>
           </section>
 
-          {/* Explanation */}
+          {/* Explanation & Structured Observations */}
           <section className={styles.section}>
-            <h3 className={styles.sectionHeading}>Incident Explanation</h3>
+            <h3 className={styles.sectionHeading}>Incident Narrative &amp; Findings</h3>
             <div className={styles.explanationBox}>
-              <p>{incident.explanation}</p>
+              <p className={styles.summaryParagraph}>{summaryText}</p>
+              {observations.length > 0 && (
+                <div className={styles.observationsContainer}>
+                  <div className={styles.obsHeading}>Observed Telemetry Deviations:</div>
+                  <ul className={styles.obsList}>
+                    {observations.map((obs, idx) => (
+                      <li key={idx} className={styles.obsItem}>
+                        <span className={styles.obsBullet} />
+                        <span>{obs}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </section>
 
           {/* Recommended Triage Steps */}
           <section className={styles.section}>
-            <h3 className={styles.sectionHeading}>Recommended Triage</h3>
+            <h3 className={styles.sectionHeading}>Recommended SOC Triage</h3>
             <div className={styles.triageBox}>
-              <svg className={styles.triageIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" strokeWidth="1.5" />
-              </svg>
-              <p>{incident.recommendedTriage}</p>
+              <div className={styles.triageIconRing}>
+                <svg className={styles.triageIcon} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" strokeWidth="2" />
+                </svg>
+              </div>
+              <p className={styles.triageTextContent}>{incident.recommendedTriage}</p>
             </div>
           </section>
 
           {/* Triggered Rule Matches */}
           <section className={styles.section}>
             <h3 className={styles.sectionHeading}>
-              Fired Rules ({incident.ruleMatches.length})
+              Triggered Detection Rules ({incident.ruleMatches.length})
             </h3>
             <div className={styles.ruleMatchesList}>
               {incident.ruleMatches.map((rm, idx) => (
@@ -216,7 +256,7 @@ export function IncidentDetailModal() {
                         className={styles.ctxSuppressionTag}
                         title={rm.contextSuppression.reason}
                       >
-                        ⬇ Context Reduced ({Math.round(rm.contextSuppression.scoreMultiplier * 100)}% weight)
+                        Context Adjusted ({Math.round(rm.contextSuppression.scoreMultiplier * 100)}% weight)
                       </span>
                     )}
                     <span className={styles.ruleEventCount}>
@@ -237,7 +277,7 @@ export function IncidentDetailModal() {
           {/* Normalized Evidence Events */}
           <section className={styles.section}>
             <h3 className={styles.sectionHeading}>
-              Evidence Events ({evidenceEvents.length})
+              Correlated Evidence Events ({evidenceEvents.length})
             </h3>
             {evidenceEvents.length === 0 ? (
               <p className={styles.noEventsText}>No event references found.</p>
@@ -246,10 +286,10 @@ export function IncidentDetailModal() {
                 <table className={styles.eventsTable} aria-label="Evidence events">
                   <thead>
                     <tr>
-                      <th scope="col">Time (UTC)</th>
+                      <th scope="col">Timestamp (UTC)</th>
                       <th scope="col">Source IP</th>
                       <th scope="col">Location</th>
-                      <th scope="col">Destination</th>
+                      <th scope="col">Destination Host</th>
                       <th scope="col">Logon Type</th>
                       <th scope="col">Outcome</th>
                     </tr>
@@ -306,9 +346,9 @@ export function IncidentDetailModal() {
 
           {/* Operational Limitation Notice */}
           <div className={styles.limitationNotice}>
-            <span className={styles.limitationIcon}>⚠</span>
+            <span className={styles.limitationIcon} aria-hidden="true">⚠</span>
             <div className={styles.limitationContent}>
-              <strong>Operational Disclaimer:</strong> Heuristic anomaly signal only.
+              <strong>SOC Operational Disclaimer:</strong> Heuristic anomaly signal only.
               This detection identifies statistical and pattern-based deviations from baseline
               behavior. It is not conclusive proof of compromise. Legitimate administrative tasks,
               credential resets, VPN changes, or network changes can produce similar signals.
@@ -318,36 +358,37 @@ export function IncidentDetailModal() {
           </div>
         </div>
 
-        {/* Modal Footer / Actions */}
+        {/* Modal Footer */}
         <footer className={styles.footer}>
-          <div className={styles.footerLeft}>
+          <div className={styles.footerActions}>
             {isAck ? (
               <button
-                id="btn-modal-unack"
                 type="button"
                 className={styles.unackBtn}
                 onClick={() => unacknowledgeIncident(incident.id)}
               >
-                Reopen Incident (Clear Acknowledgement)
+                Reopen Incident
               </button>
             ) : (
               <button
-                id="btn-modal-ack"
                 type="button"
                 className={styles.ackBtn}
                 onClick={() => acknowledgeIncident(incident.id)}
               >
-                ✓ Acknowledge Incident
+                <svg viewBox="0 0 24 24" fill="none" width="14" height="14" aria-hidden="true">
+                  <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Acknowledge Incident
               </button>
             )}
+            <button
+              type="button"
+              className={styles.doneBtn}
+              onClick={() => selectIncident(null)}
+            >
+              Done
+            </button>
           </div>
-          <button
-            type="button"
-            className={styles.closeFooterBtn}
-            onClick={() => selectIncident(null)}
-          >
-            Done
-          </button>
         </footer>
       </div>
     </div>

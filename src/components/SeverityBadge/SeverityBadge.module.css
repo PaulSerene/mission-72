@@ -1,19 +1,45 @@
+/* ── SignalForge SeverityBadge ────────────────────────────────── */
+
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
   font-family: var(--font-mono);
   font-size: 0.6875rem;
-  font-weight: 500;
-  letter-spacing: 0.06em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   border: 1px solid currentColor;
   white-space: nowrap;
   user-select: none;
+  line-height: 1;
 }
 
-.critical { color: var(--color-critical); background: var(--color-critical-dim); }
-.high     { color: var(--color-high);     background: var(--color-high-dim); }
-.medium   { color: var(--color-medium);   background: var(--color-medium-dim); }
-.low      { color: var(--color-low);      background: var(--color-low-dim); }
-.info     { color: var(--color-info);     background: var(--color-info-dim); }
+.critical {
+  color: var(--color-critical);
+  background: var(--color-critical-dim);
+  box-shadow: 0 0 10px var(--color-critical-glow);
+}
+
+.high {
+  color: var(--color-high);
+  background: var(--color-high-dim);
+  box-shadow: 0 0 8px var(--color-high-glow);
+}
+
+.medium {
+  color: var(--color-medium);
+  background: var(--color-medium-dim);
+}
+
+.low {
+  color: var(--color-low);
+  background: var(--color-low-dim);
+}
+
+.info {
+  color: var(--color-info);
+  background: var(--color-info-dim);
+}

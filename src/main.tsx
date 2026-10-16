@@ -7,7 +7,7 @@ import App from './App'
 const rootElement = document.getElementById('root')
 if (!rootElement) {
   throw new Error(
-    '[Mission 72] Root element #root not found. Check index.html.',
+    '[SignalForge] Root element #root not found. Check index.html.',
   )
 }
 

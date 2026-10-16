@@ -12,12 +12,16 @@ interface IngestionSummaryProps {
   insufficientBaselineUsers: string[]
 }
 
-export function IngestionSummary({ report, insufficientBaselineUsers }: IngestionSummaryProps) {
+export function IngestionSummary({
+  report,
+  insufficientBaselineUsers = [],
+}: IngestionSummaryProps) {
+  const users = insufficientBaselineUsers ?? []
   const hasWarnings =
     report.invalidRows.length > 0 ||
     report.duplicateCount > 0 ||
     report.missingFields.length > 0 ||
-    insufficientBaselineUsers.length > 0
+    users.length > 0
 
   return (
     <div className={styles.container}>
@@ -75,14 +79,14 @@ export function IngestionSummary({ report, insufficientBaselineUsers }: Ingestio
         </div>
       )}
 
-      {insufficientBaselineUsers.length > 0 && (
+      {users.length > 0 && (
         <div className={styles.baselineWarning}>
           <span className={styles.baselineWarnIcon}>⚠</span>
           <span>
-            <strong>{insufficientBaselineUsers.length}</strong> account{insufficientBaselineUsers.length !== 1 ? 's' : ''} had insufficient training data:{' '}
+            <strong>{users.length}</strong> account{users.length !== 1 ? 's' : ''} had insufficient training data:{' '}
             <span className={styles.userList}>
-              {insufficientBaselineUsers.slice(0, 8).join(', ')}
-              {insufficientBaselineUsers.length > 8 ? ` +${insufficientBaselineUsers.length - 8} more` : ''}
+              {users.slice(0, 8).join(', ')}
+              {users.length > 8 ? ` +${users.length - 8} more` : ''}
             </span>.
             Detections for these accounts may have lower confidence.
           </span>

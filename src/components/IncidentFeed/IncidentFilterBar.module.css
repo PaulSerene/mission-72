@@ -1,3 +1,5 @@
+/* ── SignalForge IncidentFilterBar ───────────────────────────── */
+
 .filterBar {
   display: flex;
   flex-direction: column;
@@ -14,9 +16,10 @@
   flex-wrap: wrap;
 }
 
+/* ── Search Input ─────────────────────────────────────────────── */
 .searchBox {
   flex: 1;
-  min-width: 240px;
+  min-width: 260px;
   position: relative;
   display: flex;
   align-items: center;
@@ -33,20 +36,23 @@
 
 .searchInput {
   width: 100%;
-  padding: var(--space-2) var(--space-8) var(--space-2) 36px;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
+  padding: 8px var(--space-8) 8px 36px;
+  background: var(--color-input-bg);
+  border: 1px solid var(--color-input-border);
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
-  font-family: var(--font-ui);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   outline: none;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: all var(--transition-fast);
+}
+
+.searchInput::placeholder {
+  color: var(--color-text-muted);
 }
 
 .searchInput:focus {
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 2px var(--color-accent-dim);
+  box-shadow: 0 0 0 3px var(--color-accent-dim);
 }
 
 .clearSearchBtn {
@@ -58,13 +64,16 @@
   font-size: 1.1rem;
   cursor: pointer;
   line-height: 1;
-  padding: 0 4px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast);
 }
 
 .clearSearchBtn:hover {
   color: var(--color-text-primary);
 }
 
+/* ── Sort Controls ────────────────────────────────────────────── */
 .sortGroup {
   display: flex;
   align-items: center;
@@ -72,27 +81,30 @@
 }
 
 .sortLabel {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
+  font-weight: 600;
   color: var(--color-text-secondary);
   white-space: nowrap;
 }
 
 .selectInput {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
+  background: var(--color-input-bg);
+  border: 1px solid var(--color-input-border);
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
-  font-family: var(--font-ui);
-  font-size: 0.8rem;
-  padding: var(--space-2) var(--space-3);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 7px 12px;
   outline: none;
   cursor: pointer;
+  transition: border-color var(--transition-fast);
 }
 
 .selectInput:focus {
   border-color: var(--color-accent);
 }
 
+/* ── Bottom Filter Controls ───────────────────────────────────── */
 .bottomRow {
   display: flex;
   align-items: center;
@@ -101,12 +113,15 @@
 }
 
 .filterGroupLabel {
-  font-size: 0.75rem;
-  color: var(--color-text-secondary);
-  font-weight: 500;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   white-space: nowrap;
 }
 
+/* Severity Quick Filter Chips */
 .severityGroup {
   display: flex;
   align-items: center;
@@ -115,16 +130,15 @@
 }
 
 .severityChip {
-  font-family: var(--font-ui);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.6875rem;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  padding: 3px 8px;
-  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition: all var(--transition-fast);
 }
@@ -138,26 +152,31 @@
   background: var(--color-critical-dim);
   color: var(--color-critical);
   border-color: var(--color-critical);
+  box-shadow: 0 0 10px var(--color-critical-glow);
 }
 
 .severityChip.high.activeChip {
   background: var(--color-high-dim);
   color: var(--color-high);
   border-color: var(--color-high);
+  box-shadow: 0 0 8px var(--color-high-glow);
 }
 
 .severityChip.medium.activeChip {
   background: var(--color-medium-dim);
   color: var(--color-medium);
   border-color: var(--color-medium);
+  box-shadow: 0 0 8px var(--color-medium-glow);
 }
 
 .severityChip.low.activeChip {
   background: var(--color-low-dim);
   color: var(--color-low);
   border-color: var(--color-low);
+  box-shadow: 0 0 8px var(--color-low-glow);
 }
 
+/* Filter Group */
 .filterGroup {
   display: flex;
   align-items: center;
@@ -174,16 +193,20 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   color: var(--color-text-secondary);
   cursor: pointer;
+  user-select: none;
 }
 
 .checkboxLabel input[type="checkbox"] {
   accent-color: var(--color-accent);
   cursor: pointer;
+  width: 15px;
+  height: 15px;
 }
 
+/* Count & Reset Filters */
 .countAndReset {
   margin-left: auto;
   display: flex;
@@ -199,9 +222,10 @@
 
 .resetBtn {
   font-size: 0.75rem;
-  padding: 3px 8px;
+  font-weight: 600;
+  padding: 4px 12px;
   background: transparent;
-  border: 1px solid var(--color-border-bright);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   color: var(--color-text-secondary);
   cursor: pointer;
@@ -211,4 +235,5 @@
 .resetBtn:hover {
   border-color: var(--color-accent);
   color: var(--color-accent);
+  background: var(--color-accent-dim);
 }

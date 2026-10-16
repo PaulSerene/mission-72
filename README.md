@@ -1,154 +1,201 @@
-# Mission 72 — Suspicious Login & Activity Detector
+# SignalForge
 
-> A cybersecurity hackathon application providing real-time detection of
-> suspicious authentication events and anomalous user behaviour.
+**From raw logs to clear action.**
+
+SignalForge is a context-aware security log analysis and incident investigation platform. It ingests authentication CSV logs, builds behavioral baselines, evaluates six detection rules, correlates incidents, and surfaces actionable investigations — all processed locally in the browser.
+
+---
+
+## What SignalForge Does
+
+SignalForge is a client-side SOC analysis prototype. It does not connect to any external services, backend APIs, or real-time data feeds. All processing runs in your browser.
+
+**Core capabilities:**
+
+- **CSV ingestion** — parses authentication logs with flexible field aliases (`destination_host`, `location`, etc.) and normalises timestamps across time zones.
+- **Behavioral baselines** — builds per-user profiles of normal working hours, known source IPs, and typical destination hosts from a configurable training window.
+- **Six detection rules** — evaluates each user against brute force, password spray, impossible travel, unusual-hours access, unfamiliar host access, and concurrent session rules.
+- **Incident correlation** — groups rule matches by user and time window into correlated incidents with aggregated risk scores.
+- **Context-aware suppression** — reduces or suppresses risk scores for flagged helpdesk accounts operating during declared maintenance windows, employees connecting through approved VPN ranges, and roles with elevated access grants.
+- **Audit logging** — records every context exception with the suppressing policy, reason, and preserved evidence.
+- **Investigation workspace** — displays evidence events, MITRE ATT&CK tactic tags, and recommended triage steps for each incident.
+- **Acknowledgement workflow** — analysts can acknowledge incidents and reopen them.
+- **Exports** — CSV and self-contained HTML exports of the full incident list.
+
+---
+
+## What SignalForge Is Not
+
+- Not a production SIEM.
+- Not connected to any log source, SIEM backend, or authentication provider.
+- Does not perform real-time monitoring.
+- Does not persist data between sessions (except the selected UI theme).
+- Does not guarantee detection of any real attack.
 
 ---
 
 ## Quick Start
 
 ```bash
-# 1. Install dependencies
+# Clone and install
 npm install
 
-# 2. Start the development server
+# Start the development server
 npm run dev
+
+# Run the full test suite
+npm test -- --run
+
+# Production build
+npm run build
 ```
 
-Open **http://localhost:5173** in your browser.
+Open `http://localhost:5173` in your browser.
 
 ---
 
-## Available Scripts
+## Loading Data
 
-| Command | Description |
-|---|---|
-| `npm run dev` | Start dev server with HMR at `http://localhost:5173` |
-| `npm run build` | TypeScript type-check + production bundle (`dist/`) |
-| `npm run preview` | Serve the production bundle locally |
-| `npm test` | Run all unit tests (single-pass) |
-| `npm run test:watch` | Run tests in watch mode |
-| `npm run test:coverage` | Run tests and generate a coverage report |
-| `npm run lint` | Lint `src/` with oxlint |
-| `npm run typecheck` | Type-check only (no emit) |
+### Synthetic demo
+
+Click **Load Synthetic Demo Dataset** on the import screen. This loads 280 pre-generated events across 10 detection scenarios without prompting for a file.
+
+### Custom CSV
+
+Click the dropzone (or the browse button) to select your own authentication log CSV. The expected column names are:
+
+| Column | Aliases accepted |
+|--------|-----------------|
+| `timestamp` | — |
+| `user` | `username`, `user_id` |
+| `source_ip` | `src_ip`, `ip`, `source` |
+| `destination_host` | `dest_host`, `host`, `hostname`, `target`, `resource` |
+| `status` | `result`, `outcome` |
+| `service` | `application`, `app` |
+| `failure_reason` | `reason`, `error` |
+| `location` | `geo`, `city`, `country` |
+
+Select the source timezone, optionally upload an asset inventory CSV and an IP-to-location CSV, then click **Run Analysis**.
 
 ---
 
-## Project Structure
+## Architecture
 
 ```
-missionathon/
-├── index.html               # App HTML entry point
-├── vite.config.ts           # Vite (build/dev) configuration
-├── vitest.config.ts         # Vitest (test) configuration — separated from Vite
-├── tsconfig.app.json        # TypeScript config for app source
-├── tsconfig.node.json       # TypeScript config for Node tooling
+src/
+├── components/           # All UI components (CSS Modules)
+│   ├── ConfigPanel/      # Detection threshold and policy configuration
+│   ├── ContextExceptions/# Context-exception audit log
+│   ├── ErrorBoundary/    # Top-level error recovery
+│   ├── ExportBar/        # CSV + HTML export controls
+│   ├── IncidentDetail/   # Investigation modal
+│   ├── IncidentFeed/     # Incident table and filter bar
+│   ├── IngestionSummary/ # Data quality and parse-result summary
+│   ├── LoadDataPanel/    # CSV upload and demo-load controls
+│   ├── StatCard/         # KPI metric cards
+│   ├── TopNav/           # Application shell and theme toggle
+│   └── Visualizations/  # Severity distribution and activity charts
 │
-└── src/
-    ├── main.tsx             # React mount point
-    ├── App.tsx              # App root — routes to pages
-    ├── index.css            # Global design system (tokens, reset, utilities)
-    ├── App.css              # Top-level layout styles
-    │
-    ├── types/
-    │   └── index.ts         # Core domain types (LogEntry, Alert, Severity…)
-    │
-    ├── engine/
-    │   ├── DetectionEngine.ts       # Detection engine class
-    │   ├── DetectionEngine.test.ts  # Unit tests (16 tests)
-    │   └── index.ts                 # Barrel export
-    │
-    ├── data/
-    │   └── index.ts         # Data layer placeholder (parsers, sources)
-    │
-    ├── components/
-    │   ├── TopNav/          # Navigation bar with clock and engine status
-    │   ├── StatCard/        # Dashboard metric card
-    │   └── SeverityBadge/   # Colour-coded severity label
-    │
-    ├── pages/
-    │   └── DashboardPage/   # Main SOC dashboard shell
-    │
-    └── test/
-        └── setup.ts         # Vitest global setup
+├── engine/               # Detection engine (pure TypeScript, no React)
+│   ├── assets.ts         # Asset/IP-location CSV parsing and CIDR matching
+│   ├── baseline.ts       # Behavioral baseline builder
+│   ├── DetectionEngine.ts# Core detection utilities and risk scoring
+│   ├── incidents.ts      # Incident correlator
+│   ├── ingest.ts         # CSV parser and timestamp normalizer
+│   ├── pipeline.ts       # runDetectionPipeline orchestrator
+│   └── rules.ts          # Six detection rules
+│
+├── hooks/
+│   ├── usePipeline.ts    # Async pipeline execution hook
+│   └── useTheme.ts       # Dark/light theme with localStorage persistence
+│
+├── pages/
+│   └── DashboardPage/    # Main application page and tab layout
+│
+├── state/
+│   └── AppState.tsx      # React Context + useReducer application state
+│
+├── test/                 # Integration and regression tests
+├── types/                # Shared TypeScript type definitions
+├── utils/                # Export utilities
+└── data/
+    └── generate.ts       # Synthetic dataset generator (seeded PRNG)
 ```
-
----
-
-## Technology Stack
-
-| Layer | Choice | Reason |
-|---|---|---|
-| UI framework | React 19 + TypeScript | Component model; strong typing for complex domain logic |
-| Build tool | Vite 8 | Sub-second dev start; native ESM; zero config |
-| Testing | Vitest 3 + jsdom | Same transform pipeline as Vite; fast with globals API |
-| Styling | Vanilla CSS (CSS Modules + design tokens) | No runtime overhead; full control; premium dark theme |
-| Linting | oxlint | Written in Rust; extremely fast |
-
-This is a **fully offline, client-side application** — no backend, no database, no paid APIs.
 
 ---
 
 ## Design System
 
-The application uses a deep navy / electric cyan SOC theme defined entirely in
-[`src/index.css`](src/index.css) as CSS custom properties:
+SignalForge uses a CSS custom properties design system with genuine dark and light themes.
 
-- **Typography**: Inter (UI) + JetBrains Mono (data/code)
-- **Severity colours**: Critical → red · High → orange · Medium · amber · Low → green · Info → blue
-- **Animations**: `fadeInUp`, `pulse-ring`, `blink`
+### Themes
 
----
+- **Dark** (default): Deep navy base (`#0b0f1a`) with layered charcoal surfaces.
+- **Light**: Soft cool-gray base (`#f2f4f8`) with white surfaces.
 
-## Architecture Notes
+The active theme is toggled via the sun/moon button in the top navigation bar. The selection persists in `localStorage` under the key `sf-theme`. On first visit, the system color scheme preference (`prefers-color-scheme`) is respected.
 
-### Detection Engine (`src/engine/`)
+### Color tokens
 
-The engine is **framework-agnostic** — no React imports. It:
+All colors are defined as CSS custom properties in `src/index.css` under `[data-theme="dark"]` and `[data-theme="light"]` selectors. Severity-semantic colors (`--color-critical`, `--color-high`, `--color-medium`, `--color-low`, `--color-info`) are consistent across both themes.
 
-1. Accepts a list of `RuleEvaluator` registrations.
-2. Ingests batches of `LogEntry` objects.
-3. Evaluates each registered rule against the batch + rolling history window.
-4. Returns `Alert[]` produced by the current batch.
+### Components
 
-Rules are pure functions (`(entries, history) => Alert[]`), making them trivially unit-testable.
-
-### Domain Types (`src/types/`)
-
-All types flow from a single source of truth. Key types:
-
-- `LogEntry` — a single structured event (auth, network, file, process…)
-- `Alert` — a rule match tied to one or more source events
-- `DetectionRule` — metadata for a rule (ID, name, severity, MITRE tactic)
-- `DashboardStats` — aggregate counters for the dashboard
+All components use CSS Modules (`*.module.css`) and reference design tokens via `var(--color-*)`. No component has hardcoded dark-mode colors.
 
 ---
 
-## Planned Milestones
+## Testing
 
-1. **Milestone 2 — Log Ingestion**: Parse JSON/CSV/syslog files; `data/` layer
-2. **Milestone 3 — Detection Rules**: Brute-force, impossible travel, off-hours login, privilege escalation
-3. **Milestone 4 — Live Dashboard**: Alert feed table, severity charts, IP map
-4. **Milestone 5 — Baseline Learning**: Per-user normal behaviour profiling
-5. **Milestone 6 — Export**: Alert export to JSON/CSV
+```bash
+npm test -- --run          # Run all tests once
+npm run test:watch         # Watch mode
+npm run test:coverage      # Coverage report
+```
+
+**Test suite: 154 tests across 13 files.**
+
+| Suite | Tests |
+|-------|-------|
+| Detection engine unit tests | 23 |
+| Baseline builder | 7 |
+| Ingestion / timestamp normalisation | 17 |
+| Asset and CIDR matching | 13 |
+| Incident correlation | 10 |
+| Configuration validation | 15 |
+| Pipeline + synthetic generator | 17 |
+| Export utilities | 3 |
+| Application state reducer | 13 |
+| DetectionEngine utilities | 16 |
+| Integration tests | 8 |
+| File-picker regression | 7 |
+| Custom CSV regression | 5 |
 
 ---
 
-## Environment
+## Scripts
 
-- Node.js ≥ 20
-- npm ≥ 10
-- No environment variables required — runs entirely in the browser
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start Vite development server |
+| `npm run build` | TypeScript check + production build |
+| `npm run preview` | Serve the production build locally |
+| `npm test -- --run` | Run the full test suite once |
+| `npm run test:watch` | Vitest watch mode |
+| `npm run test:coverage` | Coverage report |
+| `npm run lint` | Run oxlint on `src/` |
+| `npm run typecheck` | TypeScript type-check without emit |
+| `npm run generate-data` | Regenerate synthetic fixture data |
 
 ---
 
-## Mission 02 — Context-Aware Alert Detection
+## Technology
 
-Complete documentation, configuration schemas, scenario evaluation matrices, and operational limitations for Mission 02 are documented in:
-👉 [docs/MISSION_02_CONTEXT_AWARE_DETECTION.md](docs/MISSION_02_CONTEXT_AWARE_DETECTION.md)
-
-### Key Capabilities:
-- **Authorized Helpdesk Scoping**: Exempts multi-host traversals during declared maintenance windows for authorized accounts.
-- **Corporate VPN Integration**: CIDR bit-arithmetic matching suppresses false-positive new-IP alerts for travelling employees.
-- **Contextual Risk De-escalation**: Bounded heuristic scoring [0–100] with score multipliers and transparent incident explanations.
-- **Audit Logging**: Suppressed signals are recorded with operational rationale and preserved evidence.
+| Layer | Technology |
+|-------|-----------|
+| UI | React 19 + TypeScript |
+| Build | Vite 8 |
+| Styling | CSS Modules + CSS custom properties |
+| CSV parsing | PapaParse |
+| Tests | Vitest 5 + jsdom + React Testing Library |
+| Linting | oxlint |

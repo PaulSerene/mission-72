@@ -170,9 +170,9 @@ describe('Milestone 3 Integration Tests', () => {
       })
 
       // Dashboard title
-      expect(container!.textContent).toContain('Security Operations Dashboard')
+      expect(container!.textContent).toContain('Security Operations')
       // Onboarding welcome
-      expect(container!.textContent).toContain('Welcome to Mission 72 Detection Engine')
+      expect(container!.textContent).toContain('Welcome to SignalForge')
       // Quick demo action button
       expect(container!.textContent).toContain('Load Synthetic Demo Dataset')
       // Step guides

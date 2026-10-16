@@ -1,21 +1,50 @@
+/* ── SignalForge StatCard — Differentiated SOC Metrics ─────────── */
+
 .card {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   padding: var(--space-5) var(--space-6);
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
+  min-height: 120px;
   gap: var(--space-3);
-  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+  transition:
+    border-color var(--transition-normal),
+    box-shadow var(--transition-normal),
+    transform var(--transition-fast),
+    background var(--transition-fast);
   animation: fadeInUp var(--transition-normal) ease both;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+
+/* Gradient Top Indicator Bar */
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--accent-bar, var(--color-border));
+  transition: height var(--transition-fast);
 }
 
 .card:hover {
   border-color: var(--color-border-bright);
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-elevated);
+  transform: translateY(-2px);
 }
 
-.header {
+.card:hover::before {
+  height: 4px;
+}
+
+/* ── Card Header ──────────────────────────────────────────────── */
+.topRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -23,32 +52,123 @@
 }
 
 .label {
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-size: 0.6875rem;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-text-secondary);
+  line-height: 1.3;
 }
 
-.icon {
+.iconWrapper {
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
-  color: var(--color-text-muted);
+  justify-content: center;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  color: var(--icon-color, var(--color-text-muted));
+  flex-shrink: 0;
+  transition: transform var(--transition-fast);
+}
+
+.card:hover .iconWrapper {
+  transform: scale(1.1);
+}
+
+.iconWrapper svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* ── Value Row ────────────────────────────────────────────────── */
+.valueRow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
 }
 
 .value {
-  font-size: 2rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: 2.25rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
   line-height: 1;
   font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+  transition: color var(--transition-normal);
 }
 
-/* Variants */
-.default  .value { color: var(--color-text-primary); }
-.accent   .value { color: var(--color-accent); text-shadow: 0 0 12px var(--color-accent-glow); }
-.critical { border-color: rgba(255, 59, 107, 0.3); }
-.critical .value { color: var(--color-critical); }
-.high     .value { color: var(--color-high); }
-.medium   .value { color: var(--color-medium); }
-.low      .value { color: var(--color-low); }
+/* ── Subtext ──────────────────────────────────────────────────── */
+.subtext {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1.2;
+}
+
+/* ── Color Variants ───────────────────────────────────────────── */
+
+/* Default / Ingestion */
+.default {
+  --accent-bar: var(--color-border-bright);
+  --icon-color: var(--color-text-secondary);
+}
+
+/* Accent / Incidents */
+.accent {
+  --accent-bar: linear-gradient(90deg, var(--color-accent), var(--color-accent-light));
+  --icon-color: var(--color-accent);
+}
+.accent .value {
+  color: var(--color-accent);
+}
+
+/* Critical Severity — High impact alert card */
+.critical {
+  --accent-bar: linear-gradient(90deg, #dc2626, #ef4444);
+  --icon-color: var(--color-critical);
+  border-color: rgba(239, 68, 68, 0.35);
+  background: linear-gradient(180deg, var(--color-critical-dim) 0%, var(--color-bg-card) 55%);
+}
+.critical .value {
+  color: var(--color-critical);
+  text-shadow: 0 0 20px var(--color-critical-glow);
+}
+.critical:hover {
+  box-shadow: 0 8px 30px var(--color-critical-glow);
+  border-color: var(--color-critical);
+}
+
+/* High Severity */
+.high {
+  --accent-bar: linear-gradient(90deg, #ea580c, #f97316);
+  --icon-color: var(--color-high);
+  border-color: rgba(249, 115, 22, 0.3);
+  background: linear-gradient(180deg, var(--color-high-dim) 0%, var(--color-bg-card) 55%);
+}
+.high .value {
+  color: var(--color-high);
+}
+
+/* Medium Severity */
+.medium {
+  --accent-bar: linear-gradient(90deg, #ca8a04, #eab308);
+  --icon-color: var(--color-medium);
+}
+.medium .value {
+  color: var(--color-medium);
+}
+
+/* Low Severity / Clean health */
+.low {
+  --accent-bar: linear-gradient(90deg, #059669, #10b981);
+  --icon-color: var(--color-low);
+}
+.low .value {
+  color: var(--color-low);
+}

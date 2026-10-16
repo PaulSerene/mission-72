@@ -1,41 +1,42 @@
+/* ── SignalForge Incident Investigation Modal ─────────────────── */
+
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(4, 13, 26, 0.85);
-  backdrop-filter: blur(4px);
+  background: var(--color-bg-overlay);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   z-index: var(--z-modal);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-4);
-  animation: fadeIn 0.15s ease-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  padding: var(--space-6);
+  animation: fadeIn var(--transition-normal) ease;
 }
 
 .modal {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border-bright);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-elevated), 0 0 40px rgba(0, 0, 0, 0.4);
+  max-width: 920px;
   width: 100%;
-  max-width: 900px;
-  max-height: 90vh;
+  max-height: 88vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.7);
   overflow: hidden;
+  animation: fadeInUp var(--transition-normal) ease both;
 }
 
+/* ── Modal Header ─────────────────────────────────────────────── */
 .header {
-  padding: var(--space-6);
+  padding: var(--space-6) var(--space-8);
   background: var(--color-bg-surface);
   border-bottom: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
+  flex-shrink: 0;
 }
 
 .headerTop {
@@ -53,62 +54,98 @@
 .incidentIdBadge {
   font-family: var(--font-mono);
   font-size: 0.75rem;
-  color: var(--color-text-muted);
+  font-weight: 700;
+  color: var(--color-text-secondary);
   background: var(--color-bg-card);
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
 }
 
+.activePill {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--color-accent);
+  background: var(--color-accent-dim);
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-accent);
+}
+
 .ackBadge {
   font-family: var(--font-mono);
-  font-size: 0.7rem;
-  background: rgba(122, 159, 192, 0.15);
-  color: var(--color-text-secondary);
-  border: 1px solid var(--color-text-muted);
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--color-low);
+  background: var(--color-low-dim);
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-low);
 }
 
 .closeBtn {
-  background: transparent;
-  border: none;
-  color: var(--color-text-muted);
-  font-size: 1.5rem;
-  line-height: 1;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  padding: 0 var(--space-2);
-  transition: color var(--transition-fast);
+  transition: all var(--transition-fast);
 }
 
 .closeBtn:hover {
+  border-color: var(--color-border-bright);
   color: var(--color-text-primary);
+  transform: scale(1.05);
 }
 
 .title {
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
   color: var(--color-text-primary);
+  line-height: 1.2;
 }
 
 .userHighlight {
   color: var(--color-accent);
+  font-family: var(--font-mono);
 }
 
 .metaRow {
   display: flex;
-  gap: var(--space-4);
+  align-items: center;
+  gap: var(--space-3);
   font-size: 0.75rem;
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
   flex-wrap: wrap;
 }
 
-.metaItem strong {
-  color: var(--color-text-muted);
+.metaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
+.metaLabel {
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.metaSep {
+  color: var(--color-border-bright);
+}
+
+/* ── Modal Body ───────────────────────────────────────────────── */
 .body {
-  padding: var(--space-6);
+  padding: var(--space-6) var(--space-8);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -119,126 +156,202 @@
 .riskCard {
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
+  box-shadow: var(--shadow-card);
 }
 
 .riskHeader {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.riskScoreGroup {
+  display: flex;
+  align-items: baseline;
   gap: var(--space-3);
 }
 
 .riskScoreLabel {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
 }
 
 .riskScoreVal {
   font-family: var(--font-mono);
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .riskScoreMax {
   font-size: 0.875rem;
   color: var(--color-text-muted);
-  font-weight: 400;
 }
 
 .riskTierBadge {
-  margin-left: auto;
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-  border: 1px solid;
-  letter-spacing: 0.05em;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid currentColor;
+  background: rgba(0, 0, 0, 0.15);
 }
 
 .riskMeterTrack {
   height: 6px;
-  background: var(--color-bg-card);
-  border-radius: 3px;
+  background: rgba(100, 116, 139, 0.2);
+  border-radius: var(--radius-full);
   overflow: hidden;
 }
 
 .riskMeterFill {
   height: 100%;
-  border-radius: 3px;
+  border-radius: var(--radius-full);
   transition: width 0.4s ease;
 }
 
 .riskInterpretation {
   font-size: 0.8125rem;
   color: var(--color-text-secondary);
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
-/* Generic sections */
+/* Sections */
 .section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.sectionHeading {
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+/* Structured Narrative */
+.explanationBox {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.summaryParagraph {
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+  line-height: 1.6;
+}
+
+.observationsContainer {
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-3);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
 }
 
-.sectionHeading {
-  font-size: 0.8125rem;
-  text-transform: uppercase;
+.obsHeading {
+  font-size: 0.75rem;
+  font-weight: 700;
   letter-spacing: 0.05em;
-  color: var(--color-text-muted);
-}
-
-.explanationBox {
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-4);
-  font-size: 0.875rem;
-  color: var(--color-text-primary);
-  line-height: 1.5;
-}
-
-.triageBox {
-  display: flex;
-  gap: var(--space-3);
-  align-items: flex-start;
-  background: rgba(0, 212, 255, 0.05);
-  border: 1px solid rgba(0, 212, 255, 0.2);
-  border-radius: var(--radius-md);
-  padding: var(--space-4);
-  font-size: 0.875rem;
+  text-transform: uppercase;
   color: var(--color-accent);
+}
+
+.obsList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.obsItem {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
   line-height: 1.5;
+}
+
+.obsBullet {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+
+/* Triage Box */
+.triageBox {
+  background: linear-gradient(135deg, var(--color-accent-dim) 0%, rgba(37, 99, 235, 0.04) 100%);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  box-shadow: 0 0 16px var(--color-accent-glow);
+}
+
+.triageIconRing {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .triageIcon {
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
-  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+}
+
+.triageTextContent {
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+  font-weight: 500;
+  line-height: 1.5;
 }
 
 /* Rule Matches List */
 .ruleMatchesList {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
 }
 
 .ruleMatchItem {
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-2);
 }
 
 .ruleMatchHeader {
@@ -249,8 +362,8 @@
 }
 
 .ruleMatchName {
-  font-weight: 600;
   font-size: 0.875rem;
+  font-weight: 700;
   color: var(--color-text-primary);
 }
 
@@ -261,110 +374,120 @@
 }
 
 .mitreTag {
-  font-size: 0.7rem;
-  background: rgba(255, 215, 64, 0.1);
-  color: var(--color-medium);
-  border: 1px solid rgba(255, 215, 64, 0.3);
-  padding: 1px 6px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 2px 7px;
   border-radius: var(--radius-sm);
+  background: rgba(234, 179, 8, 0.12);
+  border: 1px solid var(--color-medium);
+  color: var(--color-medium);
 }
 
 .ctxSuppressionTag {
-  font-size: 0.7rem;
-  background: rgba(255, 112, 67, 0.12);
-  color: var(--color-high);
-  border: 1px solid rgba(255, 112, 67, 0.35);
-  padding: 1px 6px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 2px 7px;
   border-radius: var(--radius-sm);
-  font-weight: 500;
-}
-
-.ctxSuppressionReason {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-  font-style: italic;
-  margin-top: 2px;
+  background: var(--color-low-dim);
+  border: 1px solid var(--color-low);
+  color: var(--color-low);
 }
 
 .ruleEventCount {
-  margin-left: auto;
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
   font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+  margin-left: auto;
 }
 
 .ruleMatchDesc {
   font-size: 0.8125rem;
   color: var(--color-text-secondary);
+  line-height: 1.45;
 }
 
-/* Events Table */
+.ctxSuppressionReason {
+  font-size: 0.75rem;
+  color: var(--color-low);
+  font-style: italic;
+}
+
+/* Evidence Events Table */
 .eventsTableWrapper {
   overflow-x: auto;
-  background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
+  max-height: 240px;
 }
 
 .eventsTable {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.775rem;
+  font-size: 0.75rem;
   text-align: left;
 }
 
+.eventsTable thead {
+  position: sticky;
+  top: 0;
+  background: var(--color-bg-surface);
+  z-index: 2;
+}
+
 .eventsTable th {
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-bg-card);
-  color: var(--color-text-muted);
+  padding: 8px 12px;
   font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
   border-bottom: 1px solid var(--color-border);
-  white-space: nowrap;
 }
 
 .eventsTable td {
-  padding: var(--space-2) var(--space-3);
+  padding: 8px 12px;
   border-bottom: 1px solid var(--color-border);
-  white-space: nowrap;
+  color: var(--color-text-secondary);
 }
 
 .monoCell {
   font-family: var(--font-mono);
+  color: var(--color-text-primary);
 }
 
 .geoTag {
-  color: var(--color-accent);
-}
-
-.serviceTag {
-  color: var(--color-text-muted);
+  background: var(--color-bg-card);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
 }
 
 .statusSuccess {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-low-dim);
   color: var(--color-low);
-  font-size: 0.7rem;
+  border: 1px solid var(--color-low);
 }
 
 .statusFailure {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-critical-dim);
   color: var(--color-critical);
-  font-size: 0.7rem;
-}
-
-.failureReasonCell {
-  color: var(--color-text-muted);
-  max-width: 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  border: 1px solid var(--color-critical);
 }
 
 .unresolvedEvent {
   color: var(--color-text-muted);
-  font-size: 0.75rem;
-  padding: var(--space-2);
+  font-style: italic;
 }
 
 .noEventsText {
@@ -374,68 +497,66 @@
 
 /* Limitation Notice */
 .limitationNotice {
+  background: rgba(234, 179, 8, 0.08);
+  border: 1px solid var(--color-medium);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
   display: flex;
+  align-items: flex-start;
   gap: var(--space-3);
-  background: rgba(255, 215, 64, 0.05);
-  border: 1px solid rgba(255, 215, 64, 0.25);
-  border-radius: var(--radius-md);
-  padding: var(--space-3) var(--space-4);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--color-text-secondary);
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .limitationIcon {
   color: var(--color-medium);
   font-size: 1rem;
   flex-shrink: 0;
-  margin-top: 1px;
 }
 
-.limitationContent strong {
-  color: var(--color-medium);
-}
-
-/* Modal Footer */
+/* ── Modal Footer ─────────────────────────────────────────────── */
 .footer {
-  padding: var(--space-4) var(--space-6);
+  padding: var(--space-4) var(--space-8);
   background: var(--color-bg-surface);
   border-top: 1px solid var(--color-border);
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
+  justify-content: flex-end;
+  flex-shrink: 0;
 }
 
-.footerLeft {
+.footerActions {
   display: flex;
-  gap: var(--space-2);
+  align-items: center;
+  gap: var(--space-3);
 }
 
 .ackBtn {
-  padding: var(--space-2) var(--space-4);
-  background: rgba(105, 240, 174, 0.15);
-  color: var(--color-low);
-  border: 1px solid var(--color-low);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  background: var(--color-low);
+  color: #ffffff;
+  border: none;
   border-radius: var(--radius-md);
-  font-family: var(--font-ui);
   font-size: 0.8125rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
 .ackBtn:hover {
-  background: rgba(105, 240, 174, 0.25);
+  opacity: 0.9;
+  transform: translateY(-1px);
 }
 
 .unackBtn {
-  padding: var(--space-2) var(--space-4);
-  background: rgba(255, 112, 67, 0.15);
-  color: var(--color-high);
-  border: 1px solid var(--color-high);
+  padding: 8px 18px;
+  background: transparent;
+  border: 1px solid var(--color-border-bright);
+  color: var(--color-text-primary);
   border-radius: var(--radius-md);
-  font-family: var(--font-ui);
   font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
@@ -443,22 +564,23 @@
 }
 
 .unackBtn:hover {
-  background: rgba(255, 112, 67, 0.25);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
-.closeFooterBtn {
-  padding: var(--space-2) var(--space-5);
+.doneBtn {
+  padding: 8px 20px;
   background: var(--color-bg-card);
-  border: 1px solid var(--color-border-bright);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
   color: var(--color-text-primary);
-  font-family: var(--font-ui);
+  border-radius: var(--radius-md);
   font-size: 0.8125rem;
+  font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
-.closeFooterBtn:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
+.doneBtn:hover {
+  border-color: var(--color-border-bright);
+  background: var(--color-bg-card-hover);
 }
