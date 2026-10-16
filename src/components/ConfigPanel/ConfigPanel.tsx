@@ -80,6 +80,19 @@ function ConfigPanelForm({
   const [newHostCount, setNewHostCount] = useState(config?.rules?.newHosts?.newHostCount ?? 3)
   const [newHostWindow, setNewHostWindow] = useState(config?.rules?.newHosts?.windowHours ?? 24)
 
+  // Context-Aware Detection settings
+  const [helpdeskAccounts, setHelpdeskAccounts] = useState(
+    (config?.authorizedHelpdeskAccounts ?? []).join(', ')
+  )
+  const [vpnCidrs, setVpnCidrs] = useState(
+    (config?.approvedVpnCidrs ?? []).join(', ')
+  )
+  // Account role editor: simple text pairs "username:role, username2:role2"
+  const [roleOverrides, setRoleOverrides] = useState(() => {
+    const roles = config?.accountRoles ?? {}
+    return Object.entries(roles).map(([u, r]) => `${u}:${r}`).join(', ')
+  })
+
   const canRerun = Boolean(rawAuthCsv) && !isAnalyzing
 
   async function handleRerun() {
@@ -115,6 +128,26 @@ function ConfigPanelForm({
           windowHours: Number(newHostWindow),
         },
       },
+      // Context-aware detection config
+      authorizedHelpdeskAccounts: helpdeskAccounts
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean),
+      approvedVpnCidrs: vpnCidrs
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean),
+      accountRoles: Object.fromEntries(
+        roleOverrides
+          .split(',')
+          .map(s => s.trim())
+          .filter(Boolean)
+          .map(pair => {
+            const [username, role] = pair.split(':').map(x => x.trim())
+            return [username, role]
+          })
+          .filter(([u, r]) => u && r)
+      ) as Record<string, import('@/types').AccountRole>,
     }
 
     await onReanalyze(rawAuthCsv, rawAssetCsv, rawIpLocationCsv, updatedConfig)
@@ -354,6 +387,56 @@ function ConfigPanelForm({
                 onChange={e => setNewHostWindow(Number(e.target.value))}
               />
             </div>
+          </div>
+        </div>
+
+        {/* Context-Aware Detection */}
+        <div className={styles.formSection}>
+          <h4 className={styles.sectionTitle}>Context-Aware Detection (Mission 02)</h4>
+
+          <div className={styles.fieldRow}>
+            <label htmlFor="config-helpdesk-accounts" className={styles.fieldLabel}>
+              Authorized Helpdesk Accounts
+              <span className={styles.fieldHint}> — comma-separated usernames exempt from new-host alerts</span>
+            </label>
+            <input
+              id="config-helpdesk-accounts"
+              type="text"
+              className={styles.textInput}
+              placeholder="e.g. helpdesk1, it_support, sysadmin"
+              value={helpdeskAccounts}
+              onChange={e => setHelpdeskAccounts(e.target.value)}
+            />
+          </div>
+
+          <div className={styles.fieldRow}>
+            <label htmlFor="config-vpn-cidrs" className={styles.fieldLabel}>
+              Approved VPN CIDRs
+              <span className={styles.fieldHint}> — comma-separated CIDRs that suppress new-location alerts</span>
+            </label>
+            <input
+              id="config-vpn-cidrs"
+              type="text"
+              className={styles.textInput}
+              placeholder="e.g. 192.0.2.0/24, 10.8.0.0/16"
+              value={vpnCidrs}
+              onChange={e => setVpnCidrs(e.target.value)}
+            />
+          </div>
+
+          <div className={styles.fieldRow}>
+            <label htmlFor="config-role-overrides" className={styles.fieldLabel}>
+              Account Role Overrides
+              <span className={styles.fieldHint}> — username:role pairs (roles: admin, helpdesk, service, developer, regular)</span>
+            </label>
+            <input
+              id="config-role-overrides"
+              type="text"
+              className={styles.textInput}
+              placeholder="e.g. alice:developer, svc_backup:service, bob:helpdesk"
+              value={roleOverrides}
+              onChange={e => setRoleOverrides(e.target.value)}
+            />
           </div>
         </div>
       </div>

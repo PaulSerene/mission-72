@@ -36,6 +36,8 @@ function shareEventIds(ids1: string[], ids2: string[]): boolean {
 
 /**
  * Compute an explainable, bounded heuristic risk score [0, 100].
+ * Applies contextSuppression.scoreMultiplier from individual rule matches
+ * to reduce the contribution of de-escalated detections.
  */
 export function calculateIncidentRiskScore(matches: RuleMatch[]): number {
   if (matches.length === 0) return 0
@@ -58,25 +60,31 @@ export function calculateIncidentRiskScore(matches: RuleMatch[]): number {
     const count = (ruleCounts.get(match.ruleId) ?? 0) + 1
     ruleCounts.set(match.ruleId, count)
 
+    // Context-aware multiplier from partial suppression
+    const ctxMultiplier = match.contextSuppression?.scoreMultiplier ?? 1.0
+
     // Overlap suppression: If both brute_force and burst_success fire on the same sequence,
     // burst_success carries full weight (55) and brute_force is discounted to avoid double-counting.
     if (match.ruleId === 'brute_force' && hasBurstSuccess && overlapEvents) {
       if (count === 1) {
-        score += 15 // reduced secondary contribution
+        score += Math.round(15 * ctxMultiplier) // reduced secondary contribution
       } else {
-        score += 5
+        score += Math.round(5 * ctxMultiplier)
       }
       continue
     }
 
     // Diminishing returns for repeated firings of the same rule
+    let contribution: number
     if (count === 1) {
-      score += baseScore
+      contribution = baseScore
     } else if (count === 2) {
-      score += Math.round(baseScore * 0.4)
+      contribution = Math.round(baseScore * 0.4)
     } else {
-      score += Math.round(baseScore * 0.2)
+      contribution = Math.round(baseScore * 0.2)
     }
+
+    score += Math.round(contribution * ctxMultiplier)
   }
 
   // Multi-rule synergy: observing 3 or more distinct rules indicates coordinated or advanced activity
@@ -100,17 +108,23 @@ export function scoreToSeverity(score: number): Severity {
 
 /**
  * Generate a concise, analyst-friendly explanation of the correlated incident.
+ * Notes context suppressions so analysts understand why risk was reduced.
  */
 export function generateExplanation(username: string, matches: RuleMatch[]): string {
   const distinctRules = [...new Set(matches.map(m => m.ruleName))]
   const ruleCount = matches.length
 
+  const suppressedMatches = matches.filter(m => m.contextSuppression)
+  const suppressionNote = suppressedMatches.length > 0
+    ? ` [Context: ${suppressedMatches.map(m => m.contextSuppression!.reason).join('; ')}]`
+    : ''
+
   if (matches.length === 1) {
-    return matches[0].evidence.description
+    return matches[0].evidence.description + suppressionNote
   }
 
   const parts = matches.map(m => m.evidence.description)
-  return `Correlated incident for user "${username}": ${distinctRules.join(', ')} (${ruleCount} detections). Observations: ${parts.join('; ')}.`
+  return `Correlated incident for user "${username}": ${distinctRules.join(', ')} (${ruleCount} detections). Observations: ${parts.join('; ')}.${suppressionNote}`
 }
 
 /**

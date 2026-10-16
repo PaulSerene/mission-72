@@ -1,7 +1,7 @@
 {
   "description": "Ground-truth manifest of planted synthetic scenarios for Mission 72 verification.",
   "notice": "This manifest is strictly for automated test validation and verification reporting. Detection engine code must NEVER import or consult this manifest.",
-  "generatedAt": "2026-10-16T14:08:45.260Z",
+  "generatedAt": "2026-10-16T14:51:49.768Z",
   "seed": 42,
   "trainingPeriod": {
     "start": "2026-10-01T00:00:00Z",
@@ -141,6 +141,58 @@
       },
       "expectedOutcome": "rejected",
       "description": "Malformed rows with missing fields, invalid dates, or illegal IPs are safely rejected into invalidRows."
+    },
+    {
+      "id": "SCENARIO-11",
+      "name": "Authorized Helpdesk Maintenance Activity (Scenario A)",
+      "category": "benign_exception",
+      "targetUser": "helpdesk_bob",
+      "timeRange": {
+        "start": "2026-10-11T02:15:00Z",
+        "end": "2026-10-11T02:35:00Z"
+      },
+      "expectedRule": "new_hosts",
+      "expectedOutcome": "suppressed",
+      "description": "Authorized helpdesk account accesses 5 permitted hosts during declared Sunday maintenance window. Alert is suppressed with recorded contextual exception reason."
+    },
+    {
+      "id": "SCENARIO-12",
+      "name": "Out-of-Scope Helpdesk Access (Scenario B)",
+      "category": "threat",
+      "targetUser": "helpdesk_bob",
+      "timeRange": {
+        "start": "2026-10-13T10:10:00Z",
+        "end": "2026-10-13T10:30:00Z"
+      },
+      "expectedRule": "new_hosts",
+      "expectedOutcome": "alert",
+      "description": "Authorized helpdesk account accesses 5 new hosts outside the declared maintenance window (Tuesday 10:00 UTC). Normal new_hosts rule fires."
+    },
+    {
+      "id": "SCENARIO-13",
+      "name": "Suspicious Authentication During Maintenance (Scenario E)",
+      "category": "threat",
+      "targetUser": "helpdesk_bob",
+      "sourceIp": "203.0.113.88",
+      "timeRange": {
+        "start": "2026-10-11T03:15:00Z",
+        "end": "2026-10-11T03:16:30Z"
+      },
+      "expectedRule": "burst_success",
+      "expectedOutcome": "alert",
+      "description": "Failure burst followed by successful authentication during maintenance window. Authentication attack detection is not suppressed."
+    },
+    {
+      "id": "SCENARIO-14",
+      "name": "Maintenance Window Boundary Cases (Scenario F)",
+      "category": "benign_exception",
+      "targetUser": "helpdesk1",
+      "timeRange": {
+        "start": "2026-10-11T01:58:00Z",
+        "end": "2026-10-11T04:02:00Z"
+      },
+      "expectedOutcome": "suppressed",
+      "description": "Boundary events tested immediately inside and outside window boundaries (01:58 outside, 02:02 inside, 03:58 inside, 04:02 outside)."
     }
   ]
 }

@@ -22,6 +22,7 @@ import { IncidentFilterBar, IncidentTable } from '@/components/IncidentFeed'
 import { IncidentDetailModal } from '@/components/IncidentDetail'
 import { Visualizations } from '@/components/Visualizations'
 import { ConfigPanel } from '@/components/ConfigPanel'
+import { ContextExceptions } from '@/components/ContextExceptions'
 import { ExportBar } from '@/components/ExportBar'
 import { useAppState, useFilteredIncidents } from '@/state/AppState'
 import { usePipeline } from '@/hooks/usePipeline'
@@ -329,6 +330,9 @@ export default function DashboardPage() {
                     insufficientBaselineUsers={insufficientBaselineUsers}
                   />
                 )}
+                <ContextExceptions
+                  suppressedAlerts={state.suppressedAlerts ?? state.pipelineResult?.suppressedAlerts ?? []}
+                />
                 <ConfigPanel />
               </div>
             )}

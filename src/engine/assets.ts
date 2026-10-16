@@ -210,16 +210,52 @@ export function lookupLocation(ip: string, locations: IpLocationRecord[]): strin
   return null
 }
 
+import type { VpnRangeConfig } from '@/types'
+
+export interface ParsedVpnCidr {
+  network: number
+  mask: number
+  cidr: string
+  id?: string
+  description?: string
+}
+
 /**
- * Parse CIDR strings (e.g. from config.approvedVpnCidrs) into pre-computed
- * network/mask objects for fast repeated matching.
+ * Parse CIDR strings or VpnRangeConfig objects (e.g. from config.approvedVpnCidrs)
+ * into pre-computed network/mask objects for fast repeated matching.
  * Silently skips invalid or IPv6 CIDRs.
  */
-export function parseVpnCidrs(cidrs: string[]): Array<{ network: number; mask: number }> {
-  return cidrs
-    .filter(c => !c.includes(':')) // skip IPv6
-    .map(c => parseCidrV4(c))
-    .filter((c): c is NonNullable<typeof c> => c !== null)
+export function parseVpnCidrs(cidrs: Array<string | VpnRangeConfig>): ParsedVpnCidr[] {
+  const result: ParsedVpnCidr[] = []
+  for (const c of cidrs) {
+    const cidrStr = typeof c === 'string' ? c : c?.cidr
+    const id = typeof c === 'object' ? c.id : undefined
+    const description = typeof c === 'object' ? c.description : undefined
+    if (!cidrStr || cidrStr.includes(':')) continue
+    const parsed = parseCidrV4(cidrStr)
+    if (!parsed) continue
+    result.push({
+      network: parsed.network,
+      mask: parsed.mask,
+      cidr: cidrStr,
+      id,
+      description,
+    })
+  }
+  return result
+}
+
+/**
+ * Match a source IP against parsed approved VPN CIDRs using bit arithmetic.
+ * Returns the matching VPN range record (with description/id) or null.
+ */
+export function lookupMatchingVpn(ip: string, vpnCidrs: ParsedVpnCidr[]): ParsedVpnCidr | null {
+  for (const vpn of vpnCidrs) {
+    if (isIpv4InCidr(ip, vpn)) {
+      return vpn
+    }
+  }
+  return null
 }
 
 // ─── Asset Lookup ─────────────────────────────────────────────────────────────

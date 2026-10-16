@@ -211,11 +211,24 @@ export function IncidentDetailModal() {
                     {rm.mitreTactic && (
                       <span className={styles.mitreTag}>{rm.mitreTactic}</span>
                     )}
+                    {rm.contextSuppression && (
+                      <span
+                        className={styles.ctxSuppressionTag}
+                        title={rm.contextSuppression.reason}
+                      >
+                        ⬇ Context Reduced ({Math.round(rm.contextSuppression.scoreMultiplier * 100)}% weight)
+                      </span>
+                    )}
                     <span className={styles.ruleEventCount}>
                       {rm.evidence.eventIds.length} event{rm.evidence.eventIds.length !== 1 ? 's' : ''}
                     </span>
                   </div>
                   <p className={styles.ruleMatchDesc}>{rm.evidence.description}</p>
+                  {rm.contextSuppression && (
+                    <p className={styles.ctxSuppressionReason}>
+                      ℹ {rm.contextSuppression.reason}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>

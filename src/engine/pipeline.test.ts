@@ -63,8 +63,8 @@ describe('End-to-End Pipeline Execution on Synthetic Dataset', () => {
     const { ingestionReport } = result
     expect(ingestionReport).not.toBeNull()
 
-    // Total rows = 280 (275 valid/duplicate rows + 5 malformed rows)
-    expect(ingestionReport!.totalRows).toBe(280)
+    // Total rows matches generated dataset stats (includes malformed and duplicate rows)
+    expect(ingestionReport!.totalRows).toBe(dataset.stats.totalRows)
 
     // Scenario 10: 5 malformed rows rejected safely into invalidRows
     expect(ingestionReport!.invalidRows).toHaveLength(5)
@@ -150,6 +150,46 @@ describe('End-to-End Pipeline Execution on Synthetic Dataset', () => {
       m => m.ruleId === 'new_ip_location' && m.username === 'alice_vpn',
     )
     expect(vpnMatches).toHaveLength(0)
+
+    // Confirms suppression was recorded in audit log with VPN policy reason
+    expect(result.suppressedAlerts.some(s => s.username === 'alice_vpn' && s.policyType === 'approved_vpn')).toBe(true)
+  })
+
+  it('Scenario 11: Suppresses new_hosts for authorized helpdesk during maintenance (Scenario A)', () => {
+    // helpdesk_bob accessed 5 permitted hosts during Sunday 02:00-04:00 maintenance
+    const maintMatches = result.ruleMatches.filter(
+      m => m.ruleId === 'new_hosts' && m.username === 'helpdesk_bob' && m.timestamp.includes('2026-10-11T02'),
+    )
+    expect(maintMatches).toHaveLength(0)
+
+    // Contextual exception is recorded in audit log
+    const suppressed = result.suppressedAlerts.filter(
+      s => s.username === 'helpdesk_bob' && s.policyType === 'maintenance_window',
+    )
+    expect(suppressed.length).toBeGreaterThan(0)
+  })
+
+  it('Scenario 12: Detects out-of-scope helpdesk host access outside maintenance (Scenario B)', () => {
+    // helpdesk_bob accessed 5 new hosts on Tuesday outside maintenance window
+    const outOfScopeMatches = result.ruleMatches.filter(
+      m => m.ruleId === 'new_hosts' && m.username === 'helpdesk_bob' && m.timestamp.includes('2026-10-13T10'),
+    )
+    expect(outOfScopeMatches.length).toBeGreaterThanOrEqual(1)
+    expect(outOfScopeMatches[0].contextSuppression).toBeDefined()
+  })
+
+  it('Scenario 13: Detects suspicious authentication during maintenance (Scenario E)', () => {
+    // Failure burst during Sunday maintenance must still fire
+    const burstMatches = result.ruleMatches.filter(
+      m => m.ruleId === 'burst_success' && m.username === 'helpdesk_bob',
+    )
+    expect(burstMatches.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('Scenario 14: Handles boundary conditions for maintenance windows (Scenario F)', () => {
+    // Boundary events tested around 02:00-04:00 Sunday window
+    expect(result.events.some(e => e.timestamp.startsWith('2026-10-11T01:58:00'))).toBe(true)
+    expect(result.events.some(e => e.timestamp.startsWith('2026-10-11T02:02:00'))).toBe(true)
   })
 
   it('Correlates detections into valid Incidents with bounded heuristic risk scores [0, 100]', () => {

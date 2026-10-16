@@ -30,10 +30,13 @@ import type {
   Severity,
   MaintenanceWindow,
   UserBaseline,
+  AccountRole,
+  ContextSuppression,
+  SuppressedAlert,
+  IpLocationRecord,
 } from '@/types'
 import { isUnusualHour } from './baseline'
-import { parseVpnCidrs, isIpInAnyCidr } from './assets'
-import type { IpLocationRecord } from '@/types'
+import { parseVpnCidrs, lookupMatchingVpn, type ParsedVpnCidr } from './assets'
 
 // ─── Rule Score Weights (exported for incident risk scoring) ──────────────────
 
@@ -52,8 +55,22 @@ export interface RuleContext {
   baselines: Map<string, UserBaseline>
   config: AnalysisConfig
   ipLocations: IpLocationRecord[]
-  /** Pre-parsed VPN CIDRs for fast repeated matching. */
-  vpnCidrs: Array<{ network: number; mask: number }>
+  /** Pre-parsed VPN CIDRs with metadata for matching. */
+  vpnCidrs: ParsedVpnCidr[]
+  /**
+   * Account role map (username → AccountRole).
+   * Accounts absent from this map are treated as 'regular'.
+   */
+  accountRoles: Record<string, AccountRole>
+  /**
+   * Global set of authorized helpdesk accounts.
+   * Combined with per-maintenance-window authorizedHelpdeskAccounts.
+   */
+  authorizedHelpdeskAccounts: Set<string>
+  /**
+   * Audit log of alert signals suppressed by legitimate security context.
+   */
+  suppressedAlerts?: SuppressedAlert[]
 }
 
 // ─── Shared Helpers ───────────────────────────────────────────────────────────
@@ -71,25 +88,198 @@ function sortByTime(evs: AuthEvent[]): AuthEvent[] {
 }
 
 /**
- * Return true if an event falls within a configured maintenance window
- * AND (if allowedUsers is set) the event's user is in that list.
+ * Convert an ISO timestamp to local hour (0-23) and day-of-week (0=Sun..6=Sat)
+ * for a specific IANA timezone.
  */
-function isInMaintenanceWindow(ev: AuthEvent, windows: MaintenanceWindow[]): boolean {
-  const hour = utcHour(ev.timestamp)
-  const dayOfWeek = new Date(ev.timestamp).getUTCDay()
+export function getHourAndDayInTimezone(
+  isoTimestamp: string,
+  timezone: string = 'UTC',
+): { hour: number; dayOfWeek: number } {
+  try {
+    const d = new Date(isoTimestamp)
+    const fmt = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      hour: 'numeric',
+      hour12: false,
+      weekday: 'short',
+    })
+    const parts = fmt.formatToParts(d)
+    let hour = d.getUTCHours()
+    let weekdayStr = ''
+    for (const p of parts) {
+      if (p.type === 'hour') {
+        const val = parseInt(p.value, 10)
+        hour = val === 24 ? 0 : val
+      } else if (p.type === 'weekday') {
+        weekdayStr = p.value
+      }
+    }
+    const days: Record<string, number> = {
+      Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
+    }
+    const dayOfWeek = days[weekdayStr] ?? d.getUTCDay()
+    return { hour, dayOfWeek }
+  } catch {
+    const d = new Date(isoTimestamp)
+    return { hour: d.getUTCHours(), dayOfWeek: d.getUTCDay() }
+  }
+}
 
-  return windows.some(w => {
-    // Day of week filter
-    if (w.daysOfWeek && !w.daysOfWeek.includes(dayOfWeek)) return false
-    // User filter
-    if (w.allowedUsers && !w.allowedUsers.includes(ev.username)) return false
-    // Hour range (may wrap midnight)
+/**
+ * Return whether an event falls within a configured maintenance window
+ * that permits off-hours activity for this user.
+ */
+export function isInMaintenanceWindow(
+  ev: AuthEvent,
+  windows: MaintenanceWindow[],
+  defaultTimezone: string = 'UTC',
+): { inWindow: boolean; window?: MaintenanceWindow; reason?: string } {
+  for (const w of windows) {
+    const tz = w.timezone || defaultTimezone || 'UTC'
+    const { hour, dayOfWeek } = getHourAndDayInTimezone(ev.timestamp, tz)
     const { startHour, endHour } = w
-    const inRange = startHour <= endHour
-      ? hour >= startHour && hour < endHour
-      : hour >= startHour || hour < endHour
-    return inRange
-  })
+    let hourMatch = false
+    let isPreviousDayWindow = false
+
+    if (startHour < endHour) {
+      hourMatch = hour >= startHour && hour < endHour
+    } else {
+      // Midnight crossing (e.g. 22:00 to 06:00)
+      if (hour >= startHour) {
+        hourMatch = true
+        isPreviousDayWindow = false
+      } else if (hour < endHour) {
+        hourMatch = true
+        isPreviousDayWindow = true
+      }
+    }
+
+    if (!hourMatch) continue
+
+    if (w.daysOfWeek && w.daysOfWeek.length > 0) {
+      const targetDay = isPreviousDayWindow ? (dayOfWeek + 6) % 7 : dayOfWeek
+      if (!w.daysOfWeek.includes(targetDay)) continue
+    }
+
+    // User filter (if specified, only allowedUsers are exempted)
+    if (w.allowedUsers && !w.allowedUsers.includes(ev.username)) {
+      continue
+    }
+
+    return {
+      inWindow: true,
+      window: w,
+      reason: `Event for "${ev.username}" is within declared maintenance window ${w.id ? `[${w.id}]` : ''} (${w.description ?? 'Scheduled maintenance'})`,
+    }
+  }
+
+  return { inWindow: false }
+}
+
+export interface MaintenanceEvaluationResult {
+  inWindow: boolean
+  window?: MaintenanceWindow
+  authorized: boolean
+  hostPermitted: boolean
+  activityPermitted: boolean
+  exemptionApplies: boolean
+  reason: string
+}
+
+/**
+ * Evaluate whether an event represents authorized helpdesk maintenance activity.
+ *
+ * Requirements:
+ * 1. Event falls within an active maintenance window (normalized to window timezone, supports midnight wrap).
+ * 2. Account is explicitly authorized (in window or global authorizedHelpdeskAccounts). Username containing "helpdesk" is not enough!
+ * 3. Destination host is within permittedHosts scope (if configured).
+ * 4. Activity/service is within permittedActivities scope (if configured).
+ */
+export function evaluateMaintenanceContext(
+  ev: AuthEvent,
+  windows: MaintenanceWindow[],
+  globalHelpdeskAccounts: Set<string>,
+  defaultTimezone: string = 'UTC',
+): MaintenanceEvaluationResult {
+  for (const w of windows) {
+    const tz = w.timezone || defaultTimezone || 'UTC'
+    const { hour, dayOfWeek } = getHourAndDayInTimezone(ev.timestamp, tz)
+    const { startHour, endHour } = w
+    let hourMatch = false
+    let isPreviousDayWindow = false
+
+    if (startHour < endHour) {
+      hourMatch = hour >= startHour && hour < endHour
+    } else {
+      if (hour >= startHour) {
+        hourMatch = true
+        isPreviousDayWindow = false
+      } else if (hour < endHour) {
+        hourMatch = true
+        isPreviousDayWindow = true
+      }
+    }
+
+    if (!hourMatch) continue
+
+    if (w.daysOfWeek && w.daysOfWeek.length > 0) {
+      const targetDay = isPreviousDayWindow ? (dayOfWeek + 6) % 7 : dayOfWeek
+      if (!w.daysOfWeek.includes(targetDay)) continue
+    }
+
+    // Active maintenance window!
+    // Check explicit authorization: Must be explicitly configured, not inferred from username
+    const authorized =
+      globalHelpdeskAccounts.has(ev.username) ||
+      (w.authorizedHelpdeskAccounts?.includes(ev.username) ?? false)
+
+    // Check destination host scope
+    let hostPermitted = true
+    if (w.permittedHosts && w.permittedHosts.length > 0) {
+      hostPermitted = ev.destination ? w.permittedHosts.includes(ev.destination) : false
+    }
+
+    // Check activity scope
+    let activityPermitted = true
+    if (w.permittedActivities && w.permittedActivities.length > 0) {
+      const acts = w.permittedActivities.map(a => a.toLowerCase().trim())
+      const evLogon = ev.logonType ? String(ev.logonType).toLowerCase().trim() : null
+      const evType = ev.eventType ? String(ev.eventType).toLowerCase().trim() : null
+      activityPermitted = (evLogon !== null && acts.includes(evLogon)) || (evType !== null && acts.includes(evType))
+    }
+
+    const exemptionApplies = authorized && hostPermitted && activityPermitted
+
+    let reason = ''
+    if (!authorized) {
+      reason = `Account "${ev.username}" is not explicitly authorized for maintenance in window ${w.id ?? 'default'}`
+    } else if (!hostPermitted) {
+      reason = `Destination host "${ev.destination}" is outside permitted maintenance scope for window ${w.id ?? 'default'}`
+    } else if (!activityPermitted) {
+      reason = `Activity "${ev.logonType ?? ev.eventType}" is outside permitted maintenance activities for window ${w.id ?? 'default'}`
+    } else {
+      reason = `Legitimate helpdesk activity by "${ev.username}" on permitted host "${ev.destination}" during approved maintenance window ${w.id ? `[${w.id}]` : ''}`
+    }
+
+    return {
+      inWindow: true,
+      window: w,
+      authorized,
+      hostPermitted,
+      activityPermitted,
+      exemptionApplies,
+      reason,
+    }
+  }
+
+  return {
+    inWindow: false,
+    authorized: globalHelpdeskAccounts.has(ev.username),
+    hostPermitted: false,
+    activityPermitted: false,
+    exemptionApplies: false,
+    reason: 'Event timestamp is outside declared maintenance windows',
+  }
 }
 
 /** Build a RuleMatch object. */
@@ -101,8 +291,9 @@ function match(
   timestamp: string,
   evidence: Evidence,
   mitreTactic?: string,
+  contextSuppression?: ContextSuppression,
 ): RuleMatch {
-  return { ruleId, ruleName, severity, username, timestamp, evidence, mitreTactic }
+  return { ruleId, ruleName, severity, username, timestamp, evidence, mitreTactic, contextSuppression }
 }
 
 // ─── Rule 1: Brute Force ──────────────────────────────────────────────────────
@@ -345,8 +536,31 @@ export function detectUnusualHours(events: AuthEvent[], ctx: RuleContext): RuleM
     if (ev.isDuplicate) continue
     // Only alert on successful logins
     if (ev.outcome !== 'success') continue
+
     // Maintenance window suppression
-    if (isInMaintenanceWindow(ev, ctx.config.maintenanceWindows)) continue
+    const maint = isInMaintenanceWindow(ev, ctx.config.maintenanceWindows, ctx.config.timezone)
+    if (maint.inWindow) {
+      ctx.suppressedAlerts?.push({
+        id: `suppressed-maint-hours-${ev.id}`,
+        ruleId: 'unusual_hours',
+        ruleName: 'Login During Unusual Hours',
+        username: ev.username,
+        timestamp: ev.timestamp,
+        policyType: 'maintenance_window',
+        reason: maint.reason ?? 'Suppressed by maintenance window policy',
+        evidence: {
+          eventIds: [ev.id],
+          description: `Off-hours login during declared maintenance window ${maint.window?.id ?? ''}`,
+          data: {
+            windowId: maint.window?.id,
+            startHour: maint.window?.startHour,
+            endHour: maint.window?.endHour,
+            timezone: maint.window?.timezone ?? ctx.config.timezone,
+          },
+        },
+      })
+      continue
+    }
 
     const baseline = ctx.baselines.get(ev.username)
     if (!baseline) continue // no baseline → can't assess; skip
@@ -384,13 +598,12 @@ export function detectUnusualHours(events: AuthEvent[], ctx: RuleContext): RuleM
  * Fires on a SUCCESSFUL login from an IP address not seen during training,
  * where the location is also new (or no baseline exists).
  *
- * Suppression: if the source IP falls within an approved VPN CIDR range,
- * the alert is suppressed. This does not suppress other rules for the same event.
+ * Full suppression: if the source IP falls within an approved VPN CIDR range.
+ * Audit evidence and policy details are recorded for security transparency.
  *
- * Users with 'none' baseline: treated conservatively — any successful login
- * from any IP may be worth noting, but we only fire if the IP is new
- * (which for a 'none' user means "any IP"). We suppress to avoid alert storms
- * for service accounts that just appeared — only fire if the location is unknown.
+ * Partial suppression (contextSuppression): if the account role is 'admin' or
+ * 'developer' and the account has a VPN-adjacent travel pattern — the match
+ * is retained but risk score multiplier is reduced to 0.5.
  */
 export function detectNewIpOrLocation(events: AuthEvent[], ctx: RuleContext): RuleMatch[] {
   const analysisStart = ms(ctx.config.analysisPeriod.start)
@@ -404,8 +617,39 @@ export function detectNewIpOrLocation(events: AuthEvent[], ctx: RuleContext): Ru
     if (ev.isDuplicate) continue
     if (ev.outcome !== 'success') continue
 
-    // VPN suppression: approved VPN IPs are known-good new IPs
-    if (isIpInAnyCidr(ev.sourceIp, ctx.vpnCidrs)) continue
+    // Full suppression: approved VPN IPs are known-good remote access points
+    const matchingVpn = lookupMatchingVpn(ev.sourceIp, ctx.vpnCidrs)
+    if (matchingVpn) {
+      const baseline = ctx.baselines.get(ev.username)
+      const isNewIp = !baseline || !baseline.knownIps.has(ev.sourceIp)
+      const isNewLocation = !baseline || (ev.location !== null && !baseline.knownLocations.has(ev.location))
+
+      if (isNewIp || isNewLocation) {
+        const vpnDesc = matchingVpn.description ?? matchingVpn.cidr
+        const vpnId = matchingVpn.id ? ` [${matchingVpn.id}]` : ''
+        ctx.suppressedAlerts?.push({
+          id: `suppressed-vpn-${ev.id}`,
+          ruleId: 'new_ip_location',
+          ruleName: 'Login from Unfamiliar IP or Location',
+          username: ev.username,
+          timestamp: ev.timestamp,
+          policyType: 'approved_vpn',
+          reason: `Source IP ${ev.sourceIp} is within approved corporate VPN range (${vpnDesc}${vpnId}). New-location alert suppressed.`,
+          evidence: {
+            eventIds: [ev.id],
+            description: `Legitimate travelling employee or remote login via approved corporate VPN (${matchingVpn.cidr})`,
+            data: {
+              sourceIp: ev.sourceIp,
+              vpnCidr: matchingVpn.cidr,
+              vpnId: matchingVpn.id,
+              vpnDescription: matchingVpn.description,
+              location: ev.location,
+            },
+          },
+        })
+      }
+      continue
+    }
 
     const baseline = ctx.baselines.get(ev.username)
     if (!baseline) continue
@@ -424,6 +668,17 @@ export function detectNewIpOrLocation(events: AuthEvent[], ctx: RuleContext): Ru
     if (isNewIp) parts.push(`new source IP: ${ev.sourceIp}`)
     if (isNewLocation && ev.location) parts.push(`new location: ${ev.location}`)
 
+    // Context-aware partial suppression: developers and admins frequently travel
+    // or work remotely. Retain the alert but reduce risk contribution.
+    const role = ctx.accountRoles[ev.username] ?? 'regular'
+    let contextSuppression: ContextSuppression | undefined
+    if (role === 'developer' || role === 'admin') {
+      contextSuppression = {
+        reason: `Account role "${role}" is expected to occasionally access from new locations. Risk contribution reduced.`,
+        scoreMultiplier: 0.5,
+      }
+    }
+
     matches.push(match(
       'new_ip_location',
       'Login from Unfamiliar IP or Location',
@@ -439,9 +694,11 @@ export function detectNewIpOrLocation(events: AuthEvent[], ctx: RuleContext): Ru
           isNewIp,
           isNewLocation,
           knownIpCount: baseline.knownIps.size,
+          accountRole: role,
         },
       },
       'Initial Access (T1078)',
+      contextSuppression,
     ))
   }
 
@@ -456,9 +713,13 @@ export function detectNewIpOrLocation(events: AuthEvent[], ctx: RuleContext): Ru
  * Fires when a user accesses ≥ newHostCount distinct hosts not seen in their
  * training baseline, within a sliding window of windowHours.
  *
- * Only events with a non-null destination are considered.
- * Duplicate events are excluded.
- * One match is reported per qualifying window per user (earliest window first).
+ * Context-aware suppression:
+ *   - Fully suppressed for authorized helpdesk accounts during active maintenance
+ *     windows when accessing permitted hosts and performing permitted activities.
+ *   - Explanations and evidence are recorded in suppressedAlerts.
+ *   - Outside maintenance windows or for out-of-scope targets, the exemption does
+ *     not apply. A partial context reduction is noted for helpdesk accounts.
+ *   - Regular users accessing unfamiliar hosts outside maintenance trigger normal alerts.
  */
 export function detectNewHosts(events: AuthEvent[], ctx: RuleContext): RuleMatch[] {
   const { newHostCount, windowHours } = ctx.config.rules.newHosts
@@ -484,15 +745,52 @@ export function detectNewHosts(events: AuthEvent[], ctx: RuleContext): RuleMatch
     const baseline = ctx.baselines.get(username)
     if (!baseline) continue
 
+    const role = ctx.accountRoles[username] ?? 'regular'
     const sorted = sortByTime(userEvents)
+
+    // Evaluate maintenance exemptions for all events from this user
+    const exemptEventIds = new Set<string>()
+    for (const ev of sorted) {
+      const evalRes = evaluateMaintenanceContext(
+        ev,
+        ctx.config.maintenanceWindows,
+        ctx.authorizedHelpdeskAccounts,
+        ctx.config.timezone,
+      )
+      if (evalRes.exemptionApplies) {
+        exemptEventIds.add(ev.id)
+        ctx.suppressedAlerts?.push({
+          id: `suppressed-maint-host-${ev.id}`,
+          ruleId: 'new_hosts',
+          ruleName: 'Sudden Access to Many Unfamiliar Hosts',
+          username: ev.username,
+          timestamp: ev.timestamp,
+          policyType: 'maintenance_window',
+          reason: evalRes.reason,
+          evidence: {
+            eventIds: [ev.id],
+            description: `Authorized helpdesk multi-host activity on ${ev.destination} during approved maintenance window`,
+            data: {
+              destination: ev.destination,
+              windowId: evalRes.window?.id,
+              windowHours: `${evalRes.window?.startHour}:00–${evalRes.window?.endHour}:00`,
+              accountRole: role,
+            },
+          },
+        })
+      }
+    }
+
+    // Only non-exempt events count towards unauthorized unfamiliar host access
+    const nonExemptEvents = sorted.filter(e => !exemptEventIds.has(e.id))
     const reported = new Set<string>()
 
-    for (let i = 0; i < sorted.length; i++) {
-      if (reported.has(sorted[i].id)) continue
+    for (let i = 0; i < nonExemptEvents.length; i++) {
+      if (reported.has(nonExemptEvents[i].id)) continue
 
-      const windowStart = ms(sorted[i].timestamp)
+      const windowStart = ms(nonExemptEvents[i].timestamp)
       const windowEnd = windowStart + windowMs
-      const inWindow = sorted.filter((e, j) => j >= i && ms(e.timestamp) <= windowEnd)
+      const inWindow = nonExemptEvents.filter((e, j) => j >= i && ms(e.timestamp) <= windowEnd)
 
       // Count new hosts (not in training baseline)
       const newHosts = new Set(
@@ -503,12 +801,22 @@ export function detectNewHosts(events: AuthEvent[], ctx: RuleContext): RuleMatch
 
       if (newHosts.size >= newHostCount) {
         const matchingEvents = inWindow.filter(e => newHosts.has(e.destination!))
+
+        // Partial suppression for helpdesk/developer roles outside maintenance windows
+        let contextSuppression: ContextSuppression | undefined
+        if (role === 'helpdesk' || role === 'developer') {
+          contextSuppression = {
+            reason: `Account role "${role}" is expected to access multiple hosts. Review is still recommended outside maintenance windows or for unapproved host scope.`,
+            scoreMultiplier: 0.6,
+          }
+        }
+
         matches.push(match(
           'new_hosts',
           'Sudden Access to Many Unfamiliar Hosts',
           'high',
           username,
-          sorted[i].timestamp,
+          nonExemptEvents[i].timestamp,
           {
             eventIds: matchingEvents.map(e => e.id),
             description: `"${username}" accessed ${newHosts.size} previously-unseen hosts within ${windowHours}h`,
@@ -517,9 +825,11 @@ export function detectNewHosts(events: AuthEvent[], ctx: RuleContext): RuleMatch
               newHosts: [...newHosts].slice(0, 20), // cap for display
               windowHours,
               knownHostCount: baseline.knownHosts.size,
+              accountRole: role,
             },
           },
           'Discovery (T1046)',
+          contextSuppression,
         ))
         inWindow.forEach(e => reported.add(e.id))
       }
@@ -556,6 +866,12 @@ export function runAllRules(events: AuthEvent[], ctx: RuleContext): RuleMatch[] 
   const ctxWithVpn: RuleContext = {
     ...ctx,
     vpnCidrs: parseVpnCidrs(ctx.config.approvedVpnCidrs),
+    // Merge config-level accountRoles and authorizedHelpdeskAccounts
+    accountRoles: ctx.config.accountRoles ?? {},
+    authorizedHelpdeskAccounts: new Set([
+      ...(ctx.config.authorizedHelpdeskAccounts ?? []),
+      ...ctx.authorizedHelpdeskAccounts,
+    ]),
   }
 
   return [

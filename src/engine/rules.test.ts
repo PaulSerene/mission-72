@@ -1,5 +1,6 @@
 /**
  * Unit tests for Detection Rules & False Positive Suppression — Mission 72
+ * Includes context-aware alert detection tests (Mission 02).
  */
 
 import { describe, expect, it } from 'vitest'
@@ -12,6 +13,7 @@ import {
   detectNewHosts,
   type RuleContext,
 } from './rules'
+import { calculateIncidentRiskScore } from './incidents'
 import { createDefaultConfig } from './pipeline'
 import { makeEmptyBaseline } from './baseline'
 import { parseVpnCidrs } from './assets'
@@ -54,6 +56,8 @@ function createContext(userBaselines: Record<string, Partial<UserBaseline>> = {}
     baselines,
     ipLocations: [],
     vpnCidrs: parseVpnCidrs(config.approvedVpnCidrs),
+    accountRoles: {},
+    authorizedHelpdeskAccounts: new Set(),
   }
 }
 
@@ -301,6 +305,57 @@ describe('Rule 5: detectNewIpOrLocation & Approved VPN Suppression', () => {
     // Brute force must STILL fire even from a VPN IP
     expect(matches).toHaveLength(1)
   })
+
+  it('applies contextSuppression with 0.5 multiplier for developer role new-IP logins', () => {
+    const ctx: RuleContext = {
+      ...createContext({
+        dev_alice: {
+          knownIps: new Set(['10.0.1.50']),
+          knownLocations: new Set(['Corporate LAN']),
+        },
+      }),
+      accountRoles: { dev_alice: 'developer' },
+    }
+
+    const events: AuthEvent[] = [
+      makeAuthEvent({
+        timestamp: '2026-10-13T11:00:00Z',
+        username: 'dev_alice',
+        sourceIp: '203.0.113.191',
+        location: 'External / Remote Access',
+        outcome: 'success',
+      }),
+    ]
+
+    const matches = detectNewIpOrLocation(events, ctx)
+    expect(matches).toHaveLength(1)
+    expect(matches[0].contextSuppression).toBeDefined()
+    expect(matches[0].contextSuppression!.scoreMultiplier).toBe(0.5)
+    expect(matches[0].contextSuppression!.reason).toContain('developer')
+  })
+
+  it('does NOT apply contextSuppression for regular user new-IP logins', () => {
+    const ctx = createContext({
+      regular_user: {
+        knownIps: new Set(['10.0.1.50']),
+        knownLocations: new Set(['Corporate LAN']),
+      },
+    })
+
+    const events: AuthEvent[] = [
+      makeAuthEvent({
+        timestamp: '2026-10-13T11:00:00Z',
+        username: 'regular_user',
+        sourceIp: '203.0.113.192',
+        location: 'External / Remote Access',
+        outcome: 'success',
+      }),
+    ]
+
+    const matches = detectNewIpOrLocation(events, ctx)
+    expect(matches).toHaveLength(1)
+    expect(matches[0].contextSuppression).toBeUndefined()
+  })
 })
 
 describe('Rule 6: detectNewHosts', () => {
@@ -346,5 +401,161 @@ describe('Rule 6: detectNewHosts', () => {
 
     const matches = detectNewHosts(events, ctx)
     expect(matches).toHaveLength(0)
+  })
+})
+
+describe('Context-Aware Alert Detection (Mission 02)', () => {
+  it('suppresses new_hosts for authorized helpdesk during maintenance window', () => {
+    // helpdesk1 is in the default maintenance window's authorizedHelpdeskAccounts
+    const ctx = createContext({
+      helpdesk1: {
+        knownHosts: new Set(['ws-helpdesk.corp.local']),
+      },
+    })
+
+    // Sunday 02:30 UTC = inside maintenance window (Sun 02:00–04:00)
+    const newServers = ['dc-01', 'dc-02', 'db-01', 'ldap-01', 'fs-01']
+    const events: AuthEvent[] = newServers.map((host, i) =>
+      makeAuthEvent({
+        id: `hd-${i}`,
+        // 2026-10-12 is a Monday, use 2026-10-11 (Sunday)
+        timestamp: `2026-10-11T02:${String(i * 5 + 30).padStart(2, '0')}:00Z`,
+        username: 'helpdesk1',
+        destination: host,
+        outcome: 'success',
+      }),
+    )
+
+    const matches = detectNewHosts(events, ctx)
+    // ALL events occur during the maintenance window — fully suppressed
+    expect(matches).toHaveLength(0)
+  })
+
+  it('applies partial suppression (scoreMultiplier 0.6) for helpdesk outside maintenance window', () => {
+    const ctx: RuleContext = {
+      ...createContext({
+        it_support: {
+          knownHosts: new Set(['ws-helpdesk.corp.local']),
+        },
+      }),
+      accountRoles: { it_support: 'helpdesk' },
+    }
+
+    // Tuesday 14:00 UTC = NOT in maintenance window
+    const newServers = ['dc-01', 'dc-02', 'db-01', 'ldap-01', 'fs-01']
+    const events: AuthEvent[] = newServers.map((host, i) =>
+      makeAuthEvent({
+        id: `it-${i}`,
+        timestamp: `2026-10-14T14:${String(i * 5).padStart(2, '0')}:00Z`, // Tuesday
+        username: 'it_support',
+        destination: host,
+        outcome: 'success',
+      }),
+    )
+
+    const matches = detectNewHosts(events, ctx)
+    expect(matches).toHaveLength(1)
+    expect(matches[0].contextSuppression).toBeDefined()
+    expect(matches[0].contextSuppression!.scoreMultiplier).toBe(0.6)
+    expect(matches[0].contextSuppression!.reason).toContain('helpdesk')
+  })
+
+  it('does NOT suppress new_hosts for regular users accessing many new hosts', () => {
+    const ctx = createContext({
+      regular_user: {
+        knownHosts: new Set(['workstation.corp.local']),
+      },
+    })
+
+    const newServers = ['dc-01', 'dc-02', 'db-01', 'ldap-01', 'fs-01']
+    const events: AuthEvent[] = newServers.map((host, i) =>
+      makeAuthEvent({
+        id: `reg-${i}`,
+        timestamp: `2026-10-13T15:${String(i * 10).padStart(2, '0')}:00Z`,
+        username: 'regular_user',
+        destination: host,
+        outcome: 'success',
+      }),
+    )
+
+    const matches = detectNewHosts(events, ctx)
+    expect(matches).toHaveLength(1)
+    expect(matches[0].contextSuppression).toBeUndefined()
+  })
+
+  it('suppresses new_hosts for global authorizedHelpdeskAccounts during maintenance window', () => {
+    const ctx: RuleContext = {
+      ...createContext({
+        global_helpdesk: {
+          knownHosts: new Set(['ws-helpdesk.corp.local']),
+        },
+      }),
+      authorizedHelpdeskAccounts: new Set(['global_helpdesk']),
+    }
+
+    // Sunday 02:30 UTC = in maintenance window
+    const newServers = ['dc-01', 'dc-02', 'db-01', 'ldap-01', 'fs-01']
+    const events: AuthEvent[] = newServers.map((host, i) =>
+      makeAuthEvent({
+        id: `ghd-${i}`,
+        timestamp: `2026-10-11T02:${String(i * 5 + 30).padStart(2, '0')}:00Z`,
+        username: 'global_helpdesk',
+        destination: host,
+        outcome: 'success',
+      }),
+    )
+
+    const matches = detectNewHosts(events, ctx)
+    expect(matches).toHaveLength(0)
+  })
+
+  it('does NOT exempt authorized helpdesk when acting outside maintenance window (Scenario B)', () => {
+    const ctx: RuleContext = {
+      ...createContext({
+        global_helpdesk: {
+          knownHosts: new Set(['ws-helpdesk.corp.local']),
+        },
+      }),
+      accountRoles: { global_helpdesk: 'helpdesk' },
+      authorizedHelpdeskAccounts: new Set(['global_helpdesk']),
+    }
+
+    // Wednesday 10:00 UTC = outside maintenance window
+    const newServers = ['dc-01', 'dc-02', 'db-01', 'ldap-01', 'fs-01']
+    const events: AuthEvent[] = newServers.map((host, i) =>
+      makeAuthEvent({
+        id: `ghd-out-${i}`,
+        timestamp: `2026-10-09T10:${String(i * 5).padStart(2, '0')}:00Z`,
+        username: 'global_helpdesk',
+        destination: host,
+        outcome: 'success',
+      }),
+    )
+
+    const matches = detectNewHosts(events, ctx)
+    expect(matches).toHaveLength(1)
+    expect(matches[0].ruleId).toBe('new_hosts')
+    expect(matches[0].contextSuppression).toBeDefined()
+  })
+
+  it('contextSuppression multiplier reduces risk score in calculateIncidentRiskScore', () => {
+    const matchWithCtx = {
+      ruleId: 'new_hosts',
+      ruleName: 'Sudden Access to Many Unfamiliar Hosts',
+      severity: 'high' as const,
+      username: 'it_support',
+      timestamp: '2026-10-14T14:00:00Z',
+      evidence: { eventIds: ['e1'], description: 'test' },
+      contextSuppression: { reason: 'helpdesk role', scoreMultiplier: 0.6 },
+    }
+    const matchWithoutCtx = { ...matchWithCtx, contextSuppression: undefined }
+
+    const scoreWith = calculateIncidentRiskScore([matchWithCtx])
+    const scoreWithout = calculateIncidentRiskScore([matchWithoutCtx])
+
+    // With suppression (0.6x multiplier on 40 base): 24. Without: 40.
+    expect(scoreWith).toBeLessThan(scoreWithout)
+    expect(scoreWith).toBe(24)
+    expect(scoreWithout).toBe(40)
   })
 })

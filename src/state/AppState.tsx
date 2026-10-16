@@ -22,9 +22,10 @@ import type {
   RuleMatch,
   AnalysisConfig,
   AuthEvent,
+  SuppressedAlert,
+  IngestionReport,
 } from '@/types'
 import type { PipelineResult } from '@/engine/pipeline'
-import type { IngestionReport } from '@/types'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -61,6 +62,7 @@ export interface AppState {
   events: AuthEvent[]
   incidents: Incident[]
   ruleMatches: RuleMatch[]
+  suppressedAlerts: SuppressedAlert[]
   ingestionReport: IngestionReport | null
   insufficientBaselineUsers: string[]
 
@@ -124,6 +126,7 @@ const INITIAL_STATE: AppState = {
   events: [],
   incidents: [],
   ruleMatches: [],
+  suppressedAlerts: [],
   ingestionReport: null,
   insufficientBaselineUsers: [],
   acknowledgedIds: new Set(),
@@ -148,6 +151,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         events: [],
         incidents: [],
         ruleMatches: [],
+        suppressedAlerts: [],
         ingestionReport: null,
         selectedIncidentId: null,
       }
@@ -160,6 +164,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         events: action.result.events,
         incidents: action.result.incidents,
         ruleMatches: action.result.ruleMatches,
+        suppressedAlerts: action.result.suppressedAlerts ?? [],
         ingestionReport: action.result.ingestionReport,
         insufficientBaselineUsers: action.result.insufficientBaselineUsers,
         config: action.config,
@@ -181,6 +186,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         events: action.result.events,
         incidents: action.result.incidents,
         ruleMatches: action.result.ruleMatches,
+        suppressedAlerts: action.result.suppressedAlerts ?? [],
         ingestionReport: action.result.ingestionReport,
         insufficientBaselineUsers: action.result.insufficientBaselineUsers,
         lastAnalysisAt: new Date().toISOString(),

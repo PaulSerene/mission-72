@@ -27,6 +27,7 @@ describe('AppState Reducer & Filter Logic', () => {
     events: [],
     incidents: [],
     ruleMatches: [],
+    suppressedAlerts: [],
     ingestionReport: null,
     insufficientBaselineUsers: [],
     acknowledgedIds: new Set(),

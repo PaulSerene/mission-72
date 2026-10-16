@@ -25,12 +25,14 @@ import type {
   RuleMatch,
   Incident,
   UserBaseline,
+  SuppressedAlert,
 } from '@/types'
 import { parseAuthCsv } from './ingest'
 import { parseAssets, parseIpLocations, lookupLocation } from './assets'
 import { buildBaselines } from './baseline'
 import { runAllRules, type RuleContext } from './rules'
 import { correlateIncidents } from './incidents'
+import { validateConfig } from './configValidation'
 
 // ─── Default Configuration ───────────────────────────────────────────────────
 
@@ -46,16 +48,40 @@ export function createDefaultConfig(overrides: Partial<AnalysisConfig> = {}): An
       end: '2026-10-15T00:00:00Z',
     },
     approvedVpnCidrs: [
-      '192.0.2.0/24', // RFC 5737 TEST-NET-1 (used for approved corporate VPN in synthetic data)
+      {
+        cidr: '192.0.2.0/24', // RFC 5737 TEST-NET-1 (used for approved corporate VPN in synthetic data)
+        id: 'VPN-CORP-EAST',
+        description: 'Approved Corporate VPN (Remote Workforce)',
+      },
     ],
     maintenanceWindows: [
       {
+        id: 'MW-WEEKLY-SUNDAY',
+        description: 'Weekly scheduled off-hours system backup and IT maintenance',
         daysOfWeek: [0], // Sunday
         startHour: 2,
         endHour: 4,
+        timezone: 'UTC',
         allowedUsers: ['svc_backup'],
+        authorizedHelpdeskAccounts: ['helpdesk1', 'helpdesk2', 'it_support', 'helpdesk_bob'],
       },
     ],
+    accountRoles: {
+      svc_backup: 'service',
+      helpdesk1: 'helpdesk',
+      helpdesk2: 'helpdesk',
+      it_support: 'helpdesk',
+      helpdesk_bob: 'helpdesk',
+      alice: 'regular',
+      bob: 'regular',
+      victor: 'regular',
+      charlie: 'regular',
+      david: 'regular',
+      diana: 'regular',
+      edward: 'developer',
+      frank: 'regular',
+    },
+    authorizedHelpdeskAccounts: ['helpdesk1', 'helpdesk2', 'it_support', 'helpdesk_bob'],
     rules: {
       bruteForce: {
         failureCount: 5,
@@ -116,6 +142,8 @@ export interface PipelineResult {
   incidents: Incident[]
   /** Users without sufficient baseline coverage in the training period. */
   insufficientBaselineUsers: string[]
+  /** Contextual exceptions / signals suppressed by security policies (audit trail). */
+  suppressedAlerts: SuppressedAlert[]
   /** Combined AnalysisResult conforming to domain type. */
   analysisResult: AnalysisResult
   /** The effective configuration used for analysis. */
@@ -129,6 +157,12 @@ export interface PipelineResult {
  */
 export function runDetectionPipeline(input: PipelineInput): PipelineResult {
   const config = createDefaultConfig(input.config)
+
+  // Validate configuration before execution
+  const validation = validateConfig(config)
+  if (!validation.valid) {
+    throw new Error(`Configuration validation failed:\n- ${validation.errors.join('\n- ')}`)
+  }
 
   // 1. Parse or accept assets
   let assets: AssetRecord[] = []
@@ -182,12 +216,16 @@ export function runDetectionPipeline(input: PipelineInput): PipelineResult {
     }
   }
 
-  // 6. Execute all detection rules
+  // 6. Execute all detection rules with context suppression audit log
+  const suppressedAlerts: SuppressedAlert[] = []
   const ruleContext: RuleContext = {
     baselines,
     config,
     ipLocations,
     vpnCidrs: [], // populated inside runAllRules via parseVpnCidrs
+    accountRoles: config.accountRoles ?? {},
+    authorizedHelpdeskAccounts: new Set(config.authorizedHelpdeskAccounts ?? []),
+    suppressedAlerts,
   }
 
   const ruleMatches = runAllRules(events, ruleContext)
@@ -199,6 +237,7 @@ export function runDetectionPipeline(input: PipelineInput): PipelineResult {
     incidents,
     ruleMatches,
     insufficientBaselineUsers,
+    suppressedAlerts,
   }
 
   return {
@@ -212,6 +251,7 @@ export function runDetectionPipeline(input: PipelineInput): PipelineResult {
     ruleMatches,
     incidents,
     insufficientBaselineUsers,
+    suppressedAlerts,
     analysisResult,
     config,
   }

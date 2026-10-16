@@ -298,17 +298,52 @@ export interface TimeWindow {
  * Times are interpreted in UTC.
  */
 export interface MaintenanceWindow {
+  /** Optional identifier for this maintenance window (e.g. 'MW-WEEKLY-SUNDAY'). */
+  id?: string
+  /** Human-readable description of the window's operational purpose. */
+  description?: string
   /** Days of week (0=Sun, 6=Sat). If absent, applies to all days. */
   daysOfWeek?: number[]
-  /** UTC hour at which the window starts (0–23, inclusive). */
+  /** Hour at which the window starts (0–23, inclusive). */
   startHour: number
-  /** UTC hour at which the window ends (0–23, exclusive). */
+  /** Hour at which the window ends (0–23, exclusive). May wrap midnight (e.g. 22 to 6). */
   endHour: number
+  /**
+   * IANA timezone identifier for this window (e.g. 'UTC', 'America/New_York').
+   * If omitted, falls back to the analysis config timezone.
+   */
+  timezone?: string
   /**
    * If set, maintenance suppression only applies to events from these usernames.
    * Useful for service accounts that legitimately run during off-hours.
    */
   allowedUsers?: string[]
+  /**
+   * Authorized helpdesk/ops accounts that are permitted to access many hosts
+   * during this maintenance window without triggering the new_hosts rule.
+   * These accounts are explicitly trusted for host-traversal during the window.
+   */
+  authorizedHelpdeskAccounts?: string[]
+  /**
+   * Optional scope of permitted target hosts.
+   * If configured, only access to these destination hosts is exempted from new_hosts alerts.
+   */
+  permittedHosts?: string[]
+  /**
+   * Optional scope of permitted activities or services (e.g. ['rdp', 'ssh', 'smb', 'network']).
+   * If configured, only events matching these activities are exempted.
+   */
+  permittedActivities?: string[]
+}
+
+/** Configurable approved corporate VPN range. */
+export interface VpnRangeConfig {
+  /** CIDR notation (e.g. '192.0.2.0/24'). */
+  cidr: string
+  /** Optional identifier for the VPN endpoint (e.g. 'VPN-CORP-EAST'). */
+  id?: string
+  /** Human-readable label (e.g. 'Approved Corporate VPN'). */
+  description?: string
 }
 
 /** Per-rule configurable thresholds. */
@@ -348,6 +383,17 @@ export interface RuleThresholds {
   }
 }
 
+/**
+ * Role classification for user accounts.
+ * Used for context-aware risk scoring and suppression decisions.
+ */
+export type AccountRole =
+  | 'admin'         // Privileged admin — elevated scrutiny
+  | 'helpdesk'      // IT helpdesk — authorized multi-host access
+  | 'service'       // Service/machine accounts — expected automated patterns
+  | 'developer'     // Developer accounts — elevated host access expected
+  | 'regular'       // Standard user accounts (default)
+
 /** Complete configuration object for the analysis pipeline. */
 export interface AnalysisConfig {
   /**
@@ -365,10 +411,22 @@ export interface AnalysisConfig {
    * Events outside are ingested but not analyzed.
    */
   analysisPeriod: TimeWindow
-  /** CIDR ranges for approved VPN infrastructure. New-IP alerts are suppressed for these. */
-  approvedVpnCidrs: string[]
+  /** CIDR ranges for approved VPN infrastructure. New-IP/location alerts are suppressed for these. */
+  approvedVpnCidrs: Array<string | VpnRangeConfig>
   /** Recurring maintenance windows that suppress specific alerts. */
   maintenanceWindows: MaintenanceWindow[]
+  /**
+   * Account role assignments for context-aware detection.
+   * Key: username, Value: AccountRole.
+   * Accounts not listed are treated as 'regular'.
+   */
+  accountRoles: Record<string, AccountRole>
+  /**
+   * Global list of authorized helpdesk accounts that are permitted to access
+   * many hosts without triggering new_hosts alerts. This is in addition to
+   * per-window authorizedHelpdeskAccounts in MaintenanceWindow.
+   */
+  authorizedHelpdeskAccounts: string[]
   /** Per-rule configurable thresholds. */
   rules: RuleThresholds
 }
@@ -389,6 +447,17 @@ export interface Evidence {
 }
 
 /**
+ * Context that partially suppressed or de-escalated a rule match.
+ * Present when the match was not fully suppressed but context reduces confidence.
+ */
+export interface ContextSuppression {
+  /** Human-readable reason why the match was de-escalated. */
+  reason: string
+  /** Risk score multiplier applied (0.0–1.0). Lower = more suppression. */
+  scoreMultiplier: number
+}
+
+/**
  * A single rule firing against one or more AuthEvents.
  * Multiple RuleMatches for the same user/time window are correlated into an Incident.
  */
@@ -405,6 +474,12 @@ export interface RuleMatch {
   evidence: Evidence
   /** MITRE ATT&CK tactic (optional). */
   mitreTactic?: string
+  /**
+   * Context-based partial suppression metadata.
+   * If present, this match was de-escalated due to legitimate context
+   * (VPN, maintenance window, account role, etc.).
+   */
+  contextSuppression?: ContextSuppression
 }
 
 /**
@@ -439,6 +514,30 @@ export interface Incident {
 }
 
 /**
+ * Record of an alert signal that was fully suppressed due to legitimate security context
+ * (such as an approved maintenance window or corporate VPN range).
+ * Preserves evidence and operational reasoning for auditability.
+ */
+export interface SuppressedAlert {
+  /** Unique suppression record identifier. */
+  id: string
+  /** Machine-readable rule ID that would have triggered. */
+  ruleId: string
+  /** Human-readable rule name. */
+  ruleName: string
+  /** The affected user account. */
+  username: string
+  /** UTC ISO 8601 timestamp of the relevant event. */
+  timestamp: string
+  /** The policy domain that authorized the exception. */
+  policyType: 'maintenance_window' | 'approved_vpn' | 'role_policy'
+  /** Human-readable explanation of why the suppression was applied. */
+  reason: string
+  /** Preserved underlying evidence. */
+  evidence: Evidence
+}
+
+/**
  * Complete output of the analysis pipeline.
  */
 export interface AnalysisResult {
@@ -451,4 +550,9 @@ export interface AnalysisResult {
    * Alerts for these users carry lower confidence.
    */
   insufficientBaselineUsers: string[]
+  /**
+   * Signals that were suppressed by applicable contextual policies (maintenance window, VPN).
+   * Preserved for security transparency and auditability.
+   */
+  suppressedAlerts: SuppressedAlert[]
 }

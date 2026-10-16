@@ -142,9 +142,13 @@ All types flow from a single source of truth. Key types:
 
 ---
 
-## Security Notes
+## Mission 02 — Context-Aware Alert Detection
 
-The npm audit reports 4 vulnerabilities (2 moderate, 2 critical) in development
-dependencies (`esbuild` transitive chain via Vitest). These affect only the dev
-toolchain and are **not present in the production bundle**. Run `npm audit` for
-the full report.
+Complete documentation, configuration schemas, scenario evaluation matrices, and operational limitations for Mission 02 are documented in:
+👉 [docs/MISSION_02_CONTEXT_AWARE_DETECTION.md](docs/MISSION_02_CONTEXT_AWARE_DETECTION.md)
+
+### Key Capabilities:
+- **Authorized Helpdesk Scoping**: Exempts multi-host traversals during declared maintenance windows for authorized accounts.
+- **Corporate VPN Integration**: CIDR bit-arithmetic matching suppresses false-positive new-IP alerts for travelling employees.
+- **Contextual Risk De-escalation**: Bounded heuristic scoring [0–100] with score multipliers and transparent incident explanations.
+- **Audit Logging**: Suppressed signals are recorded with operational rationale and preserved evidence.

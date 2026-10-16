@@ -327,6 +327,133 @@ export function generateSyntheticDataset(seed: number = 42): SyntheticDataset {
     note: 'SCENARIO-08: approved VPN login',
   })
 
+  // Helpdesk baseline training activity (Days 1–7):
+  for (let day = 1; day <= 7; day++) {
+    rawRows.push({
+      timestamp: `2026-10-0${day}T09:00:00Z`,
+      username: 'helpdesk_bob',
+      src_ip: '10.0.1.30',
+      dest: 'workstation-bob.corp.local',
+      event_type: 'authentication',
+      result: 'success',
+      logon_type: 'interactive',
+    })
+  }
+
+  // Scenario 11 (Scenario A): Authorized Maintenance Window Activity
+  // User: helpdesk_bob, accesses 5 new hosts during Sunday 02:00–04:00 maintenance window
+  const maintHosts = [
+    'dc-primary.corp.local',
+    'dc-secondary.corp.local',
+    'db-prod-01.corp.local',
+    'app-web-01.corp.local',
+    'fs-storage-01.corp.local',
+  ]
+  maintHosts.forEach((host, i) => {
+    rawRows.push({
+      timestamp: `2026-10-11T02:${String(15 + i * 5).padStart(2, '0')}:00Z`,
+      username: 'helpdesk_bob',
+      src_ip: '10.0.1.30',
+      dest: host,
+      event_type: 'authentication',
+      result: 'success',
+      logon_type: 'network',
+      note: 'SCENARIO-11: authorized helpdesk maintenance traversal',
+    })
+  })
+
+  // Scenario 12 (Scenario B): Out-of-Scope Helpdesk Access (Outside Maintenance)
+  // User: helpdesk_bob, accesses 5 new hosts on Tuesday at 10:00 UTC (normal rules apply)
+  const outOfScopeHosts = [
+    'ci-runner-01.corp.local',
+    'app-api-01.corp.local',
+    'app-web-02.corp.local',
+    'ldap-auth.corp.local',
+    'db-prod-02.corp.local',
+  ]
+  outOfScopeHosts.forEach((host, i) => {
+    rawRows.push({
+      timestamp: `2026-10-13T10:${String(10 + i * 5).padStart(2, '0')}:00Z`,
+      username: 'helpdesk_bob',
+      src_ip: '10.0.1.30',
+      dest: host,
+      event_type: 'authentication',
+      result: 'success',
+      logon_type: 'network',
+      note: 'SCENARIO-12: out-of-scope helpdesk host access',
+    })
+  })
+
+  // Scenario 13 (Scenario E): Suspicious Authentication During Maintenance Window
+  // User: helpdesk_bob, 4 failures + 1 success within 90s from external IP during maintenance
+  for (let i = 0; i < 4; i++) {
+    rawRows.push({
+      timestamp: `2026-10-11T03:15:${String(i * 15).padStart(2, '0')}Z`,
+      username: 'helpdesk_bob',
+      src_ip: '203.0.113.88',
+      dest: 'dc-primary.corp.local',
+      event_type: 'authentication',
+      result: 'failure',
+      logon_type: 'network',
+      note: 'SCENARIO-13: failure burst during maintenance',
+    })
+  }
+  rawRows.push({
+    timestamp: '2026-10-11T03:16:15Z',
+    username: 'helpdesk_bob',
+    src_ip: '203.0.113.88',
+    dest: 'dc-primary.corp.local',
+    event_type: 'authentication',
+    result: 'success',
+    logon_type: 'network',
+    note: 'SCENARIO-13: burst success during maintenance',
+  })
+
+  // Scenario 14 (Scenario F): Maintenance Window Boundary Cases
+  // Testing events immediately inside and outside maintenance boundary (Sunday 02:00–04:00 UTC)
+  rawRows.push(
+    {
+      timestamp: '2026-10-11T01:58:00Z', // 2m outside (before)
+      username: 'helpdesk1',
+      src_ip: '10.0.1.30',
+      dest: 'dc-primary.corp.local',
+      event_type: 'authentication',
+      result: 'success',
+      logon_type: 'network',
+      note: 'SCENARIO-14: pre-window boundary event',
+    },
+    {
+      timestamp: '2026-10-11T02:02:00Z', // 2m inside (start)
+      username: 'helpdesk1',
+      src_ip: '10.0.1.30',
+      dest: 'dc-secondary.corp.local',
+      event_type: 'authentication',
+      result: 'success',
+      logon_type: 'network',
+      note: 'SCENARIO-14: inside-window boundary event',
+    },
+    {
+      timestamp: '2026-10-11T03:58:00Z', // 2m inside (near end)
+      username: 'helpdesk1',
+      src_ip: '10.0.1.30',
+      dest: 'db-prod-01.corp.local',
+      event_type: 'authentication',
+      result: 'success',
+      logon_type: 'network',
+      note: 'SCENARIO-14: inside-window boundary event (near end)',
+    },
+    {
+      timestamp: '2026-10-11T04:02:00Z', // 2m outside (after)
+      username: 'helpdesk1',
+      src_ip: '10.0.1.30',
+      dest: 'db-prod-02.corp.local',
+      event_type: 'authentication',
+      result: 'success',
+      logon_type: 'network',
+      note: 'SCENARIO-14: post-window boundary event',
+    },
+  )
+
   // Scenario 9: Duplicate records
   // Repeat 2 exact records
   const dup1: RawRow = {
@@ -497,6 +624,46 @@ export function generateSyntheticDataset(seed: number = 42): SyntheticDataset {
         timeRange: { start: '2026-10-01T00:00:00Z', end: '2026-10-15T00:00:00Z' },
         expectedOutcome: 'rejected',
         description: 'Malformed rows with missing fields, invalid dates, or illegal IPs are safely rejected into invalidRows.',
+      },
+      {
+        id: 'SCENARIO-11',
+        name: 'Authorized Helpdesk Maintenance Activity (Scenario A)',
+        category: 'benign_exception',
+        targetUser: 'helpdesk_bob',
+        timeRange: { start: '2026-10-11T02:15:00Z', end: '2026-10-11T02:35:00Z' },
+        expectedRule: 'new_hosts',
+        expectedOutcome: 'suppressed',
+        description: 'Authorized helpdesk account accesses 5 permitted hosts during declared Sunday maintenance window. Alert is suppressed with recorded contextual exception reason.',
+      },
+      {
+        id: 'SCENARIO-12',
+        name: 'Out-of-Scope Helpdesk Access (Scenario B)',
+        category: 'threat',
+        targetUser: 'helpdesk_bob',
+        timeRange: { start: '2026-10-13T10:10:00Z', end: '2026-10-13T10:30:00Z' },
+        expectedRule: 'new_hosts',
+        expectedOutcome: 'alert',
+        description: 'Authorized helpdesk account accesses 5 new hosts outside the declared maintenance window (Tuesday 10:00 UTC). Normal new_hosts rule fires.',
+      },
+      {
+        id: 'SCENARIO-13',
+        name: 'Suspicious Authentication During Maintenance (Scenario E)',
+        category: 'threat',
+        targetUser: 'helpdesk_bob',
+        sourceIp: '203.0.113.88',
+        timeRange: { start: '2026-10-11T03:15:00Z', end: '2026-10-11T03:16:30Z' },
+        expectedRule: 'burst_success',
+        expectedOutcome: 'alert',
+        description: 'Failure burst followed by successful authentication during maintenance window. Authentication attack detection is not suppressed.',
+      },
+      {
+        id: 'SCENARIO-14',
+        name: 'Maintenance Window Boundary Cases (Scenario F)',
+        category: 'benign_exception',
+        targetUser: 'helpdesk1',
+        timeRange: { start: '2026-10-11T01:58:00Z', end: '2026-10-11T04:02:00Z' },
+        expectedOutcome: 'suppressed',
+        description: 'Boundary events tested immediately inside and outside window boundaries (01:58 outside, 02:02 inside, 03:58 inside, 04:02 outside).',
       },
     ],
   }
