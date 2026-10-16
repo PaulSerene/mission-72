@@ -1,7 +1,7 @@
 {
   "description": "Ground-truth manifest of planted synthetic scenarios for Mission 72 verification.",
   "notice": "This manifest is strictly for automated test validation and verification reporting. Detection engine code must NEVER import or consult this manifest.",
-  "generatedAt": "2026-10-16T13:17:33.647Z",
+  "generatedAt": "2026-10-16T14:08:45.260Z",
   "seed": 42,
   "trainingPeriod": {
     "start": "2026-10-01T00:00:00Z",

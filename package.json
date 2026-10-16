@@ -12,7 +12,7 @@
     "test:coverage": "vitest run --config vitest.config.ts --coverage",
     "lint": "oxlint src",
     "typecheck": "tsc --noEmit",
-    "generate-data": "node --experimental-strip-types src/data/generate.ts"
+    "generate-data": "node --experimental-strip-types src/data/cli.ts"
   },
   "dependencies": {
     "papaparse": "^5.7.0",

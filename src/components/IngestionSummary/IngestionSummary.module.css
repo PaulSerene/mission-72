@@ -1,0 +1,188 @@
+.container {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.warnBadge {
+  font-size: 0.7rem;
+  background: var(--color-medium-dim);
+  color: var(--color-medium);
+  border: 1px solid var(--color-medium);
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+}
+
+.okBadge {
+  font-size: 0.7rem;
+  background: var(--color-low-dim);
+  color: var(--color-low);
+  border: 1px solid var(--color-low);
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+}
+
+.statsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 80px;
+}
+
+.statLabel {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.statValue {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.statValue.accent {
+  color: var(--color-accent);
+}
+
+.statValue.warn {
+  color: var(--color-medium);
+}
+
+.statValue.mono {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+.details {
+  font-size: 0.8rem;
+}
+
+.summary {
+  color: var(--color-medium);
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: var(--space-1) 0;
+}
+
+.summary:hover {
+  color: var(--color-text-secondary);
+}
+
+.errorList {
+  list-style: none;
+  margin-top: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--color-bg-surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+}
+
+.errorItem {
+  display: flex;
+  gap: var(--space-2);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.rowNum {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.errorReason {
+  color: var(--color-medium);
+}
+
+.moreItems {
+  color: var(--color-text-muted);
+  font-style: italic;
+  font-size: 0.7rem;
+}
+
+.missingFields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.missingField {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.fieldName {
+  font-family: var(--font-mono);
+  color: var(--color-text-secondary);
+  background: var(--color-bg-surface);
+  padding: 0.1rem 0.3rem;
+  border-radius: var(--radius-sm);
+}
+
+.fieldCount {
+  color: var(--color-medium);
+}
+
+.ruleImpact {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.baselineWarning {
+  display: flex;
+  gap: var(--space-3);
+  background: rgba(255, 215, 64, 0.07);
+  border: 1px solid rgba(255, 215, 64, 0.3);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.baselineWarnIcon {
+  color: var(--color-medium);
+  flex-shrink: 0;
+  font-size: 0.875rem;
+}
+
+.userList {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}

@@ -28,11 +28,6 @@
  * Notice: This dataset is synthetic for testing and hackathon evaluation.
  * Results should not be labeled as proof of real-world detection accuracy.
  */
-
-import * as fs from 'node:fs'
-import * as path from 'node:path'
-import { fileURLToPath } from 'node:url'
-
 // ─── Deterministic PRNG (Mulberry32) ──────────────────────────────────────────
 
 export function createRng(seed: number = 42) {
@@ -520,35 +515,4 @@ export function generateSyntheticDataset(seed: number = 42): SyntheticDataset {
       scenarioCount: manifest.scenarios.length,
     },
   }
-}
-
-// ─── Save Dataset to Disk ─────────────────────────────────────────────────────
-
-export function writeDatasetFiles(outputDir: string, dataset: SyntheticDataset): void {
-  fs.mkdirSync(outputDir, { recursive: true })
-  fs.writeFileSync(path.join(outputDir, 'auth_logs.csv'), dataset.authCsv, 'utf-8')
-  fs.writeFileSync(path.join(outputDir, 'assets.csv'), dataset.assetsCsv, 'utf-8')
-  fs.writeFileSync(path.join(outputDir, 'ip_locations.csv'), dataset.ipLocationsCsv, 'utf-8')
-  fs.writeFileSync(path.join(outputDir, 'expected.json'), JSON.stringify(dataset.manifest, null, 2), 'utf-8')
-}
-
-// ─── CLI Entrypoint ───────────────────────────────────────────────────────────
-
-const isDirectRun =
-  typeof process !== 'undefined' &&
-  process.argv[1] &&
-  fileURLToPath(import.meta.url).replace(/\\/g, '/').toLowerCase() ===
-    process.argv[1].replace(/\\/g, '/').toLowerCase()
-
-if (isDirectRun) {
-  const targetDir = path.resolve(process.cwd(), 'src/data/fixtures')
-  console.log(`Generating synthetic dataset in: ${targetDir}`)
-  const dataset = generateSyntheticDataset(42)
-  writeDatasetFiles(targetDir, dataset)
-  console.log(`✓ Synthetic dataset generated successfully:`)
-  console.log(`  - Total Rows: ${dataset.stats.totalRows}`)
-  console.log(`  - Malformed Rows: ${dataset.stats.malformedRows}`)
-  console.log(`  - Duplicate Rows: ${dataset.stats.duplicateRows}`)
-  console.log(`  - Planted Scenarios: ${dataset.stats.scenarioCount}`)
-  console.log(`  - Written to: ${targetDir}/auth_logs.csv, assets.csv, ip_locations.csv, expected.json`)
 }

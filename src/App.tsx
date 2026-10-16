@@ -1,14 +1,18 @@
+import { AppProvider } from '@/state/AppState'
 import DashboardPage from '@/pages/DashboardPage'
 import './App.css'
 
 /**
  * Application root.
  *
- * Currently renders only the DashboardPage.
- * When routing is needed, replace this with a router (e.g. react-router).
+ * Provides application state to DashboardPage and downstream components.
  */
 function App() {
-  return <DashboardPage />
+  return (
+    <AppProvider>
+      <DashboardPage />
+    </AppProvider>
+  )
 }
 
 export default App

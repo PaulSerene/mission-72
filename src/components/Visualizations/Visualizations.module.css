@@ -1,0 +1,303 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.vizGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+}
+
+.card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.cardWide {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.cardTitle {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+}
+
+.emptyState {
+  padding: var(--space-6);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.emptyCardText {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  padding: var(--space-2) 0;
+}
+
+/* Severity Distribution */
+.severityBarWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.severityBarTrack {
+  height: 12px;
+  background: var(--color-bg-surface);
+  border-radius: var(--radius-sm);
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+
+.severityBarSegment {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.severityLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+}
+
+.legendDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legendLabel {
+  color: var(--color-text-muted);
+}
+
+.legendVal {
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+}
+
+.legendPct {
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+}
+
+/* Horizontal Bar List */
+.horizontalBarList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.hbarItem {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.hbarLabels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+}
+
+.hbarUser {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 170px;
+}
+
+.hbarMeta {
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+}
+
+.hbarTrack {
+  height: 6px;
+  background: var(--color-bg-surface);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.hbarFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* Timeline */
+.timelineWrapper {
+  display: flex;
+  flex-direction: column;
+  height: 110px;
+}
+
+.timelineBars {
+  display: flex;
+  align-items: flex-end;
+  height: 100%;
+  gap: var(--space-2);
+  padding-bottom: var(--space-4);
+  position: relative;
+}
+
+.timelineCol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  justify-content: flex-end;
+  gap: 3px;
+  position: relative;
+}
+
+.barCount {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--color-text-muted);
+  line-height: 1;
+}
+
+.vbarTrack {
+  width: 100%;
+  height: 70px;
+  display: flex;
+  align-items: flex-end;
+  background: var(--color-bg-surface);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.vbarFill {
+  width: 100%;
+  border-radius: var(--radius-sm);
+  transition: height 0.3s ease;
+}
+
+.barLabel {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--color-text-muted);
+  position: absolute;
+  bottom: -18px;
+  white-space: nowrap;
+}
+
+/* 24h Activity */
+.wideHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.activityLegend {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 0.725rem;
+  color: var(--color-text-secondary);
+}
+
+.actSuccessDot {
+  width: 8px;
+  height: 8px;
+  background: var(--color-low);
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.actFailureDot {
+  width: 8px;
+  height: 8px;
+  background: var(--color-critical);
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.hourlyChart {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 120px;
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-5);
+  position: relative;
+}
+
+.hourlyCol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  justify-content: flex-end;
+  position: relative;
+}
+
+.hourlyTrack {
+  width: 100%;
+  height: 90px;
+  background: var(--color-bg-surface);
+  border-radius: 2px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+.hourlyStack {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.hourlyFailFill {
+  width: 100%;
+  background: var(--color-critical);
+  transition: height 0.3s ease;
+}
+
+.hourlySuccFill {
+  width: 100%;
+  background: var(--color-low);
+  transition: height 0.3s ease;
+}
+
+.hourlyLabel {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--color-text-muted);
+  position: absolute;
+  bottom: -16px;
+}

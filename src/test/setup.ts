@@ -5,6 +5,6 @@
  * custom matchers, or environment bootstrapping here.
  */
 
-// Nothing to set up yet — jsdom is configured in vite.config.ts.
-// Future: import '@testing-library/jest-dom/vitest' for DOM matchers
-//         if we add @testing-library/jest-dom.
+// Configure React 19 testing environment for act(...)
+// @ts-expect-error global declaration for React testing
+globalThis.IS_REACT_ACT_ENVIRONMENT = true

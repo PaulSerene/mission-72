@@ -6,7 +6,6 @@ export type { LogEntry } from '@/types'
 
 export {
   generateSyntheticDataset,
-  writeDatasetFiles,
   generateAssetsCsv,
   generateIpLocationsCsv,
   createRng,
