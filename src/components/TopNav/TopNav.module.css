@@ -1,4 +1,10 @@
-/* ── SignalForge Application Shell TopNav ─────────────────────── */
+/* ── SignalForge Application Shell TopNav ───────────────────────
+ * Soft, organic, forest-emerald styling for the top header:
+ * - Glassy forest background with subtle backdrop blur
+ * - Thin sage-green bottom border
+ * - Rounded pill badges and clock container
+ * - Smooth hover micro-interactions
+ */
 
 .nav {
   position: sticky;
@@ -7,13 +13,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 var(--space-8);
-  height: 64px;
+  padding: 0 32px;
+  height: 68px;
   background: var(--color-bg-glass);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--color-border);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   transition: background var(--transition-normal), border-color var(--transition-normal);
 }
 
@@ -21,28 +27,28 @@
 .brand {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: 12px;
   text-decoration: none;
   color: inherit;
 }
 
 .logoMark {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-accent-dim);
+  background: rgba(115, 214, 154, 0.12);
   border: 1px solid var(--color-border-bright);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 0 16px var(--color-accent-glow);
+  border-radius: var(--radius-md, 12px);
+  box-shadow: 0 2px 10px rgba(115, 214, 154, 0.15);
   flex-shrink: 0;
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .logoMark:hover {
   transform: scale(1.05);
-  box-shadow: 0 0 24px var(--color-accent-glow);
+  box-shadow: 0 4px 16px rgba(115, 214, 154, 0.25);
 }
 
 .logoSvg {
@@ -53,18 +59,19 @@
 .brandText {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
 }
 
 .brandRow {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 8px;
 }
 
 .brandName {
-  font-size: 1.125rem;
-  font-weight: 700;
+  font-family: var(--font-ui);
+  font-size: 1.15rem;
+  font-weight: 800;
   letter-spacing: -0.03em;
   color: var(--color-text-primary);
   line-height: 1.2;
@@ -72,24 +79,21 @@
 
 .brandAccent {
   color: var(--color-accent);
-  background: linear-gradient(135deg, var(--color-accent-light) 0%, var(--color-accent) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
 }
 
 .brandTag {
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.08em;
-  padding: 1px 6px;
-  border-radius: var(--radius-sm);
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
   background: var(--color-accent-dim);
-  border: 1px solid var(--color-accent);
+  border: 1px solid var(--color-border-bright);
   color: var(--color-accent);
 }
 
 .brandTagline {
-  font-size: 0.6875rem;
+  font-size: 0.7rem;
   color: var(--color-text-secondary);
   letter-spacing: 0.01em;
   font-weight: 400;
@@ -99,14 +103,14 @@
 .centerMeta {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: 12px;
 }
 
 .envPill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 10px;
+  padding: 4px 12px;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-full);
@@ -114,6 +118,7 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   color: var(--color-text-secondary);
+  box-shadow: var(--shadow-sm);
 }
 
 .envDot {
@@ -121,14 +126,14 @@
   height: 6px;
   border-radius: 50%;
   background: var(--color-accent);
-  box-shadow: 0 0 6px var(--color-accent);
+  box-shadow: 0 0 6px var(--color-accent-glow);
 }
 
 /* ── Controls Section ─────────────────────────────────────────── */
 .controls {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: 14px;
 }
 
 /* ── Engine Status Pill ───────────────────────────────────────── */
@@ -144,6 +149,7 @@
   letter-spacing: 0.08em;
   border: 1px solid transparent;
   transition: all var(--transition-fast);
+  box-shadow: var(--shadow-sm);
 }
 
 .dot {
@@ -159,8 +165,8 @@
 
 /* Status variants */
 .idle {
-  background: rgba(100, 116, 139, 0.12);
-  border-color: rgba(100, 116, 139, 0.28);
+  background: var(--color-bg-card);
+  border-color: var(--color-border);
   color: var(--color-text-secondary);
 }
 .idle .dot {
@@ -168,7 +174,7 @@
 }
 
 .running {
-  background: rgba(37, 99, 235, 0.15);
+  background: rgba(115, 214, 154, 0.15);
   border-color: var(--color-accent);
   color: var(--color-accent);
   box-shadow: 0 0 12px var(--color-accent-glow);
@@ -205,15 +211,16 @@
 .clock {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   font-family: var(--font-mono);
-  font-size: 0.8125rem;
+  font-size: 0.8rem;
   color: var(--color-text-secondary);
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  padding: 5px 12px;
-  border-radius: var(--radius-md);
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
   white-space: nowrap;
+  box-shadow: var(--shadow-sm);
 }
 
 .clockIcon {
@@ -234,8 +241,8 @@
   font-weight: 700;
   color: var(--color-accent);
   background: var(--color-accent-dim);
-  padding: 1px 4px;
-  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
   letter-spacing: 0.05em;
 }
 
@@ -248,17 +255,17 @@
   height: 36px;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: 50%;
   color: var(--color-text-secondary);
   cursor: pointer;
   transition: all var(--transition-fast);
+  box-shadow: var(--shadow-sm);
 }
 
 .themeToggle:hover {
   border-color: var(--color-accent);
   color: var(--color-accent);
   background: var(--color-accent-dim);
-  box-shadow: 0 0 14px var(--color-accent-glow);
   transform: translateY(-1px);
 }
 
@@ -276,7 +283,7 @@
 
 @media (max-width: 640px) {
   .nav {
-    padding: 0 var(--space-4);
+    padding: 0 16px;
   }
   .brandTagline {
     display: none;

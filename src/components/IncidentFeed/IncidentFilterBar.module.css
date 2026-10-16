@@ -39,7 +39,7 @@
   padding: 8px var(--space-8) 8px 36px;
   background: var(--color-input-bg);
   border: 1px solid var(--color-input-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
   color: var(--color-text-primary);
   font-size: 0.8125rem;
   outline: none;
@@ -65,7 +65,7 @@
   cursor: pointer;
   line-height: 1;
   padding: 2px 6px;
-  border-radius: var(--radius-sm);
+  border-radius: 50%;
   transition: color var(--transition-fast);
 }
 
@@ -90,15 +90,20 @@
 .selectInput {
   background: var(--color-input-bg);
   border: 1px solid var(--color-input-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
   color: var(--color-text-primary);
   font-size: 0.8125rem;
   font-weight: 500;
-  padding: 7px 12px;
+  padding: 7px 16px;
   outline: none;
   cursor: pointer;
-  transition: border-color var(--transition-fast);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
 }
+
+.selectInput:hover {
+  border-color: var(--color-border-bright);
+}
+
 
 .selectInput:focus {
   border-color: var(--color-accent);

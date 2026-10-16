@@ -1,155 +1,171 @@
 /* ============================================================
    SignalForge — Global Design System
-   From raw logs to clear action.
+   Soft, Premium, Organic & Restrained Cybersecurity Identity
    ============================================================ */
 
 /* ── Fonts ──────────────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
-/* ── Dark Theme Tokens (Default) ────────────────────────────── */
+/* ── Dark Theme Tokens (Default: Deep Forest-Black & Emerald) ── */
 :root,
 [data-theme="dark"] {
   color-scheme: dark;
 
   /* Atmospheric Backgrounds */
-  --color-bg-base:          #080c14;
-  --color-bg-surface:       #0d1424;
-  --color-bg-card:          #11192e;
-  --color-bg-card-hover:    #16213c;
-  --color-bg-elevated:      #1a2644;
-  --color-bg-overlay:       rgba(8, 12, 20, 0.88);
-  --color-bg-glass:         rgba(13, 20, 36, 0.75);
+  --color-bg-canvas:        #060B08;
+  --color-bg-base:          #0B110E;
+  --color-bg-shell:         #0E1712;
+  --color-bg-surface:       #101A14;
+  --color-bg-card:          #16231B;
+  --color-bg-card-hover:    #1C2D22;
+  --color-bg-elevated:      #1F3226;
+  --color-bg-overlay:       rgba(11, 17, 14, 0.88);
+  --color-bg-glass:         rgba(22, 35, 27, 0.82);
 
-  /* Subtle Modern Borders */
-  --color-border:           rgba(99, 130, 190, 0.16);
-  --color-border-bright:    rgba(99, 130, 190, 0.32);
-  --color-border-focus:     #3b82f6;
+  /* Subtle Soft Sage Borders */
+  --color-border:           rgba(115, 214, 154, 0.12);
+  --color-border-subtle:    rgba(115, 214, 154, 0.08);
+  --color-border-bright:    rgba(115, 214, 154, 0.22);
+  --color-border-focus:     #73D69A;
 
-  /* Primary Accent — Cyber Electric Blue */
-  --color-accent:           #3b82f6;
-  --color-accent-light:     #60a5fa;
-  --color-accent-dim:       rgba(59, 130, 246, 0.12);
-  --color-accent-glow:      rgba(59, 130, 246, 0.35);
+  /* Primary Accent — Muted Emerald & Mint */
+  --color-accent:           #73D69A;
+  --color-accent-light:     #B7F0CB;
+  --color-accent-dim:       rgba(115, 214, 154, 0.12);
+  --color-accent-glow:      rgba(115, 214, 154, 0.25);
 
-  /* Severity Spectrum — Rich Cyber Glow */
-  --color-critical:         #ef4444;
-  --color-critical-dim:     rgba(239, 68, 68, 0.14);
-  --color-critical-glow:    rgba(239, 68, 68, 0.35);
+  /* Warm Accent — Reference Amber / Gold */
+  --color-accent-warm:      #E5A93C;
+  --color-accent-warm-light:#F3C675;
+  --color-accent-warm-dim:  rgba(229, 169, 60, 0.15);
 
-  --color-high:             #f97316;
-  --color-high-dim:         rgba(249, 115, 22, 0.14);
-  --color-high-glow:        rgba(249, 115, 22, 0.30);
+  /* Restrained Severity Spectrum */
+  --color-critical:         #E05D5D;
+  --color-critical-dim:     rgba(224, 93, 93, 0.14);
+  --color-critical-glow:    rgba(224, 93, 93, 0.28);
 
-  --color-medium:           #eab308;
-  --color-medium-dim:       rgba(234, 179, 8, 0.14);
-  --color-medium-glow:      rgba(234, 179, 8, 0.25);
+  --color-high:             #E58E3C;
+  --color-high-dim:         rgba(229, 142, 60, 0.14);
+  --color-high-glow:        rgba(229, 142, 60, 0.24);
 
-  --color-low:              #10b981;
-  --color-low-dim:          rgba(16, 185, 129, 0.14);
-  --color-low-glow:         rgba(16, 185, 129, 0.25);
+  --color-medium:           #E5C050;
+  --color-medium-dim:       rgba(229, 192, 80, 0.14);
+  --color-medium-glow:      rgba(229, 192, 80, 0.20);
 
-  --color-info:             #38bdf8;
-  --color-info-dim:         rgba(56, 189, 248, 0.14);
-  --color-info-glow:        rgba(56, 189, 248, 0.25);
+  --color-low:              #73D69A;
+  --color-low-dim:          rgba(115, 214, 154, 0.14);
+  --color-low-glow:         rgba(115, 214, 154, 0.20);
 
-  /* Text & Hierarchy */
-  --color-text-primary:     #f1f5f9;
-  --color-text-secondary:   #94a3b8;
-  --color-text-muted:       #64748b;
-  --color-text-inverse:     #080c14;
-  --color-text-on-accent:   #ffffff;
+  --color-info:             #5EEAD4;
+  --color-info-dim:         rgba(94, 234, 212, 0.14);
+  --color-info-glow:        rgba(94, 234, 212, 0.20);
+
+  /* Soft Typography & Hierarchy */
+  --color-text-primary:     #E8F1EA;
+  --color-text-secondary:   #A0B2A4;
+  --color-text-muted:       #687D6E;
+  --color-text-inverse:     #0B110E;
+  --color-text-on-accent:   #0B110E;
 
   /* Form & Interactive */
-  --color-input-bg:         rgba(13, 20, 36, 0.85);
-  --color-input-border:     rgba(99, 130, 190, 0.22);
+  --color-input-bg:         rgba(16, 26, 20, 0.85);
+  --color-input-border:     rgba(115, 214, 154, 0.16);
 
-  /* Shadows & Depth */
-  --shadow-sm:              0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-card:            0 4px 20px -2px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(99, 130, 190, 0.1);
-  --shadow-elevated:        0 12px 32px -4px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(99, 130, 190, 0.18);
-  --shadow-accent:          0 0 24px rgba(59, 130, 246, 0.3);
-  --shadow-critical:        0 0 20px rgba(239, 68, 68, 0.3);
+  /* Soft Ambient Shadows */
+  --shadow-sm:              0 2px 4px rgba(0, 0, 0, 0.25);
+  --shadow-card:            0 6px 24px -2px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(115, 214, 154, 0.08);
+  --shadow-elevated:        0 16px 40px -6px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(115, 214, 154, 0.14);
+  --shadow-accent:          0 0 24px rgba(115, 214, 154, 0.25);
+  --shadow-critical:        0 0 20px rgba(224, 93, 93, 0.25);
 
-  /* Mesh Background */
-  --bg-mesh: radial-gradient(circle at 12% 15%, rgba(59, 130, 246, 0.08) 0%, transparent 45%),
-             radial-gradient(circle at 88% 25%, rgba(139, 92, 246, 0.06) 0%, transparent 45%),
-             linear-gradient(rgba(59, 130, 246, 0.02) 1px, transparent 1px),
-             linear-gradient(90deg, rgba(59, 130, 246, 0.02) 1px, transparent 1px);
-  --bg-grid-size: 48px 48px;
+  /* Subtle Organic Mesh */
+  --bg-mesh: radial-gradient(circle at 10% 12%, rgba(115, 214, 154, 0.05) 0%, transparent 45%),
+             radial-gradient(circle at 90% 20%, rgba(229, 169, 60, 0.03) 0%, transparent 45%),
+             linear-gradient(rgba(115, 214, 154, 0.015) 1px, transparent 1px),
+             linear-gradient(90deg, rgba(115, 214, 154, 0.015) 1px, transparent 1px);
+  --bg-grid-size: 56px 56px;
 }
 
-/* ── Light Theme Tokens (Enterprise Polished Slate) ──────────── */
+/* ── Light Theme Tokens (Matches Reference Screenshot Mint & Cream) ── */
 [data-theme="light"] {
   color-scheme: light;
 
-  /* Clean Enterprise Backgrounds */
-  --color-bg-base:          #f1f5f9;
-  --color-bg-surface:       #ffffff;
-  --color-bg-card:          #ffffff;
-  --color-bg-card-hover:    #f8fafc;
-  --color-bg-elevated:      #f8fafc;
-  --color-bg-overlay:       rgba(241, 245, 249, 0.92);
-  --color-bg-glass:         rgba(255, 255, 255, 0.85);
+  /* Soft Mint Canvas & Clean Layered Surfaces */
+  --color-bg-canvas:        #E2ECE5;
+  --color-bg-base:          #EBF5EE;
+  --color-bg-shell:         #F2F8F4;
+  --color-bg-surface:       #F7FCF8;
+  --color-bg-card:          #FFFFFF;
+  --color-bg-card-hover:    #F8FCF9;
+  --color-bg-elevated:      #E8F3EB;
+  --color-bg-overlay:       rgba(235, 245, 238, 0.90);
+  --color-bg-glass:         rgba(255, 255, 255, 0.88);
 
-  /* Subtle Crisp Borders */
-  --color-border:           #cbd5e1;
-  --color-border-bright:    #94a3b8;
-  --color-border-focus:     #2563eb;
+  /* Crisp Pale Sage Borders */
+  --color-border:           #D3E2D7;
+  --color-border-subtle:    #E2EDE5;
+  --color-border-bright:    #BFD5C5;
+  --color-border-focus:     #289659;
 
-  /* Accent */
-  --color-accent:           #2563eb;
-  --color-accent-light:     #3b82f6;
-  --color-accent-dim:       rgba(37, 99, 235, 0.10);
-  --color-accent-glow:      rgba(37, 99, 235, 0.22);
+  /* Primary Accent — Crisp Leaf Emerald & Mint */
+  --color-accent:           #289659;
+  --color-accent-light:     #3CB371;
+  --color-accent-dim:       rgba(40, 150, 89, 0.10);
+  --color-accent-glow:      rgba(40, 150, 89, 0.20);
+
+  /* Warm Accent */
+  --color-accent-warm:      #D99426;
+  --color-accent-warm-light:#EBB04D;
+  --color-accent-warm-dim:  rgba(217, 148, 38, 0.12);
 
   /* Severity Spectrum */
-  --color-critical:         #dc2626;
-  --color-critical-dim:     rgba(220, 38, 38, 0.10);
-  --color-critical-glow:    rgba(220, 38, 38, 0.20);
+  --color-critical:         #D32F2F;
+  --color-critical-dim:     rgba(211, 47, 47, 0.10);
+  --color-critical-glow:    rgba(211, 47, 47, 0.18);
 
-  --color-high:             #ea580c;
-  --color-high-dim:         rgba(234, 88, 12, 0.10);
-  --color-high-glow:        rgba(234, 88, 12, 0.18);
+  --color-high:             #E65100;
+  --color-high-dim:         rgba(230, 81, 0, 0.10);
+  --color-high-glow:        rgba(230, 81, 0, 0.16);
 
-  --color-medium:           #ca8a04;
-  --color-medium-dim:       rgba(202, 138, 4, 0.10);
-  --color-medium-glow:      rgba(202, 138, 4, 0.18);
+  --color-medium:           #B78103;
+  --color-medium-dim:       rgba(183, 129, 3, 0.10);
+  --color-medium-glow:      rgba(183, 129, 3, 0.16);
 
-  --color-low:              #059669;
-  --color-low-dim:          rgba(5, 150, 105, 0.10);
-  --color-low-glow:         rgba(5, 150, 105, 0.18);
+  --color-low:              #2E7D32;
+  --color-low-dim:          rgba(46, 125, 50, 0.10);
+  --color-low-glow:         rgba(46, 125, 50, 0.16);
 
-  --color-info:             #0284c7;
-  --color-info-dim:         rgba(2, 132, 199, 0.10);
-  --color-info-glow:        rgba(2, 132, 199, 0.18);
+  --color-info:             #00897B;
+  --color-info-dim:         rgba(0, 137, 123, 0.10);
+  --color-info-glow:        rgba(0, 137, 123, 0.16);
 
   /* Text & Hierarchy */
-  --color-text-primary:     #0f172a;
-  --color-text-secondary:   #475569;
-  --color-text-muted:       #64748b;
-  --color-text-inverse:     #ffffff;
-  --color-text-on-accent:   #ffffff;
+  --color-text-primary:     #121E16;
+  --color-text-secondary:   #576F5E;
+  --color-text-muted:       #829B89;
+  --color-text-inverse:     #FFFFFF;
+  --color-text-on-accent:   #FFFFFF;
 
   /* Form & Interactive */
-  --color-input-bg:         #ffffff;
-  --color-input-border:     #cbd5e1;
+  --color-input-bg:         #FFFFFF;
+  --color-input-border:     #D3E2D7;
 
   /* Shadows & Depth */
-  --shadow-sm:              0 1px 3px rgba(0, 0, 0, 0.06);
-  --shadow-card:            0 2px 8px -1px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
-  --shadow-elevated:        0 10px 25px -3px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06);
-  --shadow-accent:          0 0 16px rgba(37, 99, 235, 0.2);
-  --shadow-critical:        0 0 16px rgba(220, 38, 38, 0.2);
+  --shadow-sm:              0 1px 3px rgba(18, 30, 22, 0.05);
+  --shadow-card:            0 4px 20px -2px rgba(18, 30, 22, 0.06), 0 0 0 1px rgba(18, 30, 22, 0.03);
+  --shadow-elevated:        0 16px 36px -6px rgba(18, 30, 22, 0.10), 0 0 0 1px rgba(18, 30, 22, 0.05);
+  --shadow-accent:          0 0 20px rgba(40, 150, 89, 0.20);
+  --shadow-critical:        0 0 16px rgba(211, 47, 47, 0.18);
 
-  /* Clean mesh for light */
-  --bg-mesh: radial-gradient(circle at 10% 10%, rgba(37, 99, 235, 0.03) 0%, transparent 50%),
-             radial-gradient(circle at 90% 20%, rgba(99, 102, 241, 0.02) 0%, transparent 50%);
+  /* Clean subtle gradient mesh */
+  --bg-mesh: radial-gradient(circle at 10% 10%, rgba(40, 150, 89, 0.04) 0%, transparent 55%),
+             radial-gradient(circle at 90% 15%, rgba(217, 148, 38, 0.03) 0%, transparent 55%);
   --bg-grid-size: auto;
 }
 
 /* ── Shared Dimensions & Typography ──────────────────────────── */
 :root {
-  --font-ui:   'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-ui:   'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
 
   /* Spacing Scale */
@@ -164,18 +180,19 @@
   --space-12: 3rem;
   --space-16: 4rem;
 
-  /* Radius Scale */
-  --radius-sm:  6px;
-  --radius-md:  8px;
-  --radius-lg:  12px;
-  --radius-xl:  16px;
-  --radius-2xl: 20px;
+  /* Soft Rounded Radius Scale (Matching Screenshot) */
+  --radius-xs:  6px;
+  --radius-sm:  8px;
+  --radius-md:  14px;
+  --radius-lg:  20px;
+  --radius-xl:  26px;
+  --radius-2xl: 32px;
   --radius-full: 9999px;
 
   /* Animation Timings */
-  --transition-fast:   150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow:   400ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast:   180ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-normal: 280ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-slow:   450ms cubic-bezier(0.16, 1, 0.3, 1);
 
   /* Z-Index Hierarchy */
   --z-base:    0;
@@ -314,13 +331,13 @@ a:hover {
 
 @keyframes pulse-glow {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50%      { opacity: 0.55; transform: scale(0.96); }
+  50%      { opacity: 0.65; transform: scale(0.97); }
 }
 
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(16px);
   }
   to {
     opacity: 1;
@@ -336,7 +353,7 @@ a:hover {
 @keyframes slideDown {
   from {
     opacity: 0;
-    transform: translateY(-8px);
+    transform: translateY(-10px);
   }
   to {
     opacity: 1;
@@ -344,12 +361,47 @@ a:hover {
   }
 }
 
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes countUp {
+  from { opacity: 0.4; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 .animate-fade-in-up {
-  animation: fadeInUp var(--transition-normal) ease both;
+  animation: fadeInUp var(--transition-normal) cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .animate-fade-in {
   animation: fadeIn var(--transition-normal) ease both;
+}
+
+.animate-scale-in {
+  animation: scaleIn var(--transition-normal) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Stagger utilities for dashboard panels */
+.stagger-1 { animation-delay: 50ms; }
+.stagger-2 { animation-delay: 100ms; }
+.stagger-3 { animation-delay: 150ms; }
+.stagger-4 { animation-delay: 200ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ── Modern Scrollbars ───────────────────────────────────────── */
