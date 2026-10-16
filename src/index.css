@@ -1,0 +1,187 @@
+/* ============================================================
+   Mission 72 — Global Design System
+   ============================================================ */
+
+/* ── Fonts ──────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ── Design Tokens ──────────────────────────────────────────── */
+:root {
+  /* Color palette — deep navy / cyan SOC theme */
+  --color-bg-base:       #040d1a;
+  --color-bg-surface:    #071224;
+  --color-bg-card:       #0b1c38;
+  --color-bg-card-hover: #0f2248;
+  --color-border:        #1a3154;
+  --color-border-bright: #234578;
+
+  /* Accent: electric cyan */
+  --color-accent:        #00d4ff;
+  --color-accent-dim:    rgba(0, 212, 255, 0.15);
+  --color-accent-glow:   rgba(0, 212, 255, 0.35);
+
+  /* Severity colours */
+  --color-critical:      #ff3b6b;
+  --color-critical-dim:  rgba(255, 59, 107, 0.15);
+  --color-high:          #ff7043;
+  --color-high-dim:      rgba(255, 112, 67, 0.15);
+  --color-medium:        #ffd740;
+  --color-medium-dim:    rgba(255, 215, 64, 0.12);
+  --color-low:           #69f0ae;
+  --color-low-dim:       rgba(105, 240, 174, 0.12);
+  --color-info:          #82b1ff;
+  --color-info-dim:      rgba(130, 177, 255, 0.12);
+
+  /* Text */
+  --color-text-primary:   #e2eaf6;
+  --color-text-secondary: #7a9fc0;
+  --color-text-muted:     #3d5a7a;
+  --color-text-inverse:   #040d1a;
+
+  /* Typography */
+  --font-ui:   'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Mono', 'Cascadia Code', monospace;
+
+  /* Spacing scale */
+  --space-1:  0.25rem;
+  --space-2:  0.5rem;
+  --space-3:  0.75rem;
+  --space-4:  1rem;
+  --space-5:  1.25rem;
+  --space-6:  1.5rem;
+  --space-8:  2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* Border radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  /* Shadows */
+  --shadow-card:    0 4px 24px rgba(0, 0, 0, 0.4);
+  --shadow-accent:  0 0 24px var(--color-accent-glow);
+  --shadow-critical: 0 0 16px rgba(255, 59, 107, 0.3);
+
+  /* Transitions */
+  --transition-fast:   150ms ease;
+  --transition-normal: 250ms ease;
+  --transition-slow:   400ms ease;
+
+  /* Z-index scale */
+  --z-base:    0;
+  --z-above:   10;
+  --z-nav:     100;
+  --z-overlay: 200;
+  --z-modal:   300;
+}
+
+/* ── Reset & Base ───────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-ui);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-base);
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Typography ─────────────────────────────────────────────── */
+h1, h2, h3, h4, h5, h6 {
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
+}
+
+code, kbd, pre, samp {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+}
+
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+  transition: opacity var(--transition-fast);
+}
+
+a:hover {
+  opacity: 0.8;
+}
+
+/* ── Utility Classes ─────────────────────────────────────────── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+/* Severity badge colours */
+.badge-critical { background: var(--color-critical-dim); color: var(--color-critical); border: 1px solid var(--color-critical); }
+.badge-high     { background: var(--color-high-dim);     color: var(--color-high);     border: 1px solid var(--color-high); }
+.badge-medium   { background: var(--color-medium-dim);   color: var(--color-medium);   border: 1px solid var(--color-medium); }
+.badge-low      { background: var(--color-low-dim);      color: var(--color-low);      border: 1px solid var(--color-low); }
+.badge-info     { background: var(--color-info-dim);     color: var(--color-info);     border: 1px solid var(--color-info); }
+
+/* Scan-line grid overlay (decorative) */
+.scanline-bg {
+  background-image:
+    linear-gradient(rgba(0, 212, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 212, 255, 0.02) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+/* Pulse animation for live indicators */
+@keyframes pulse-ring {
+  0%   { transform: scale(1);    opacity: 1; }
+  80%  { transform: scale(2.2);  opacity: 0; }
+  100% { transform: scale(2.2);  opacity: 0; }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp var(--transition-normal) ease both;
+}
