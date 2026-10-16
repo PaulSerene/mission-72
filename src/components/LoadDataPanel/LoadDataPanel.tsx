@@ -83,14 +83,31 @@ export function LoadDataPanel() {
         role="button"
         tabIndex={0}
         aria-label="Drop authentication log CSV or click to select"
-        onKeyDown={(e) => e.key === 'Enter' && authRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            authRef.current?.click()
+          }
+        }}
       >
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className={styles.dropzoneIcon}>
           <path d="M4 16l4-4 3 3 5-6 4 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           <rect x="2" y="3" width="20" height="18" rx="2" stroke="currentColor" strokeWidth="1.5"/>
         </svg>
         {authFile ? (
-          <span className={styles.fileName}>{authFile.name}</span>
+          <div className={styles.authFileInfo}>
+            <span className={styles.fileName}>{authFile.name}</span>
+            <button
+              type="button"
+              className={styles.clearBtn}
+              onClick={(e) => {
+                e.stopPropagation()
+                setAuthFile(null)
+                if (authRef.current) authRef.current.value = ''
+              }}
+              aria-label="Remove authentication log CSV"
+            >×</button>
+          </div>
         ) : (
           <>
             <span className={styles.dropzoneLabel}>Authentication Log CSV</span>
@@ -102,6 +119,10 @@ export function LoadDataPanel() {
           type="file"
           accept=".csv,text/csv"
           onChange={(e: ChangeEvent<HTMLInputElement>) => handleAuthFile(e.target.files)}
+          onClick={(e) => {
+            e.stopPropagation()
+            e.currentTarget.value = ''
+          }}
           className={styles.hiddenInput}
           id="input-auth-csv"
           aria-label="Authentication log CSV file"
@@ -207,7 +228,10 @@ function OptionalFileInput({ label, hint, file, onChange, inputRef, id }: Option
           <button
             type="button"
             className={styles.clearBtn}
-            onClick={() => onChange(null)}
+            onClick={() => {
+              onChange(null)
+              if (inputRef.current) inputRef.current.value = ''
+            }}
             aria-label={`Remove ${label}`}
           >×</button>
         )}
@@ -219,6 +243,10 @@ function OptionalFileInput({ label, hint, file, onChange, inputRef, id }: Option
         id={id}
         className={styles.hiddenInput}
         onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.files?.[0] ?? null)}
+        onClick={(e) => {
+          e.stopPropagation()
+          e.currentTarget.value = ''
+        }}
         aria-label={`${label} CSV file (optional)`}
       />
     </div>

@@ -179,8 +179,8 @@ export default function DashboardPage() {
         {/* ── Export & Session Bar ──────────────────────────────────── */}
         {hasData && <ExportBar />}
 
-        {/* ── Collapsible Load Panel ────────────────────────────────── */}
-        {(showLoadPanel || (!hasData && activeTab === 'load')) && (
+        {/* ── Collapsible Load Panel (when data is loaded) ─────────── */}
+        {hasData && showLoadPanel && (
           <section className={styles.loadSection} aria-label="Log file import">
             <LoadDataPanel />
           </section>
