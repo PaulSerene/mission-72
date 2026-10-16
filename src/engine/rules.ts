@@ -37,6 +37,13 @@ import type {
 } from '@/types'
 import { isUnusualHour } from './baseline'
 import { parseVpnCidrs, lookupMatchingVpn, type ParsedVpnCidr } from './assets'
+import {
+  isValidCoordinate,
+  haversineDistanceKm,
+  calculateTravelSpeedKmH,
+  DEFAULT_MAX_TRAVEL_SPEED_KM_H,
+  DEFAULT_MIN_TRAVEL_DISTANCE_KM,
+} from './geo'
 
 // ─── Rule Score Weights (exported for incident risk scoring) ──────────────────
 
@@ -47,6 +54,7 @@ export const RULE_SCORES: Record<string, number> = {
   unusual_hours: 25,
   new_ip_location: 35,
   new_hosts: 40,
+  impossible_travel: 50,
 }
 
 // ─── Context Passed to All Rules ──────────────────────────────────────────────
@@ -135,41 +143,52 @@ export function isInMaintenanceWindow(
   defaultTimezone: string = 'UTC',
 ): { inWindow: boolean; window?: MaintenanceWindow; reason?: string } {
   for (const w of windows) {
-    const tz = w.timezone || defaultTimezone || 'UTC'
-    const { hour, dayOfWeek } = getHourAndDayInTimezone(ev.timestamp, tz)
-    const { startHour, endHour } = w
-    let hourMatch = false
-    let isPreviousDayWindow = false
-
-    if (startHour < endHour) {
-      hourMatch = hour >= startHour && hour < endHour
+    if (w.start && w.end) {
+      const evMs = ms(ev.timestamp)
+      const wStartMs = ms(w.start)
+      const wEndMs = ms(w.end)
+      if (evMs < wStartMs || evMs >= wEndMs) continue
     } else {
-      // Midnight crossing (e.g. 22:00 to 06:00)
-      if (hour >= startHour) {
-        hourMatch = true
-        isPreviousDayWindow = false
-      } else if (hour < endHour) {
-        hourMatch = true
-        isPreviousDayWindow = true
+      const tz = w.timezone || defaultTimezone || 'UTC'
+      const { hour, dayOfWeek } = getHourAndDayInTimezone(ev.timestamp, tz)
+      const { startHour, endHour } = w
+      if (startHour === undefined || endHour === undefined) continue
+      let hourMatch = false
+      let isPreviousDayWindow = false
+
+      if (startHour < endHour) {
+        hourMatch = hour >= startHour && hour < endHour
+      } else {
+        // Midnight crossing (e.g. 22:00 to 06:00)
+        if (hour >= startHour) {
+          hourMatch = true
+          isPreviousDayWindow = false
+        } else if (hour < endHour) {
+          hourMatch = true
+          isPreviousDayWindow = true
+        }
+      }
+
+      if (!hourMatch) continue
+
+      if (w.daysOfWeek && w.daysOfWeek.length > 0) {
+        const targetDay = isPreviousDayWindow ? (dayOfWeek + 6) % 7 : dayOfWeek
+        if (!w.daysOfWeek.includes(targetDay)) continue
       }
     }
 
-    if (!hourMatch) continue
-
-    if (w.daysOfWeek && w.daysOfWeek.length > 0) {
-      const targetDay = isPreviousDayWindow ? (dayOfWeek + 6) % 7 : dayOfWeek
-      if (!w.daysOfWeek.includes(targetDay)) continue
-    }
-
-    // User filter (if specified, only allowedUsers are exempted)
-    if (w.allowedUsers && !w.allowedUsers.includes(ev.username)) {
+    // User filter (if specified, only allowedUsers or approvedAccounts are exempted)
+    const allowed = (w.allowedUsers ?? [])
+      .concat(w.approvedAccounts ?? [])
+      .concat(w.authorizedHelpdeskAccounts ?? [])
+    if (allowed.length > 0 && !allowed.includes(ev.username)) {
       continue
     }
 
     return {
       inWindow: true,
       window: w,
-      reason: `Event for "${ev.username}" is within declared maintenance window ${w.id ? `[${w.id}]` : ''} (${w.description ?? 'Scheduled maintenance'})`,
+      reason: `Event for "${ev.username}" is within declared maintenance window ${w.id ? `[${w.id}]` : ''} (${w.description ?? w.scope ?? 'Scheduled maintenance'})`,
     }
   }
 
@@ -202,41 +221,57 @@ export function evaluateMaintenanceContext(
   defaultTimezone: string = 'UTC',
 ): MaintenanceEvaluationResult {
   for (const w of windows) {
-    const tz = w.timezone || defaultTimezone || 'UTC'
-    const { hour, dayOfWeek } = getHourAndDayInTimezone(ev.timestamp, tz)
-    const { startHour, endHour } = w
-    let hourMatch = false
-    let isPreviousDayWindow = false
-
-    if (startHour < endHour) {
-      hourMatch = hour >= startHour && hour < endHour
+    if (w.start && w.end) {
+      const evMs = ms(ev.timestamp)
+      const wStartMs = ms(w.start)
+      const wEndMs = ms(w.end)
+      if (evMs < wStartMs || evMs >= wEndMs) continue
     } else {
-      if (hour >= startHour) {
-        hourMatch = true
-        isPreviousDayWindow = false
-      } else if (hour < endHour) {
-        hourMatch = true
-        isPreviousDayWindow = true
+      const tz = w.timezone || defaultTimezone || 'UTC'
+      const { hour, dayOfWeek } = getHourAndDayInTimezone(ev.timestamp, tz)
+      const { startHour, endHour } = w
+      if (startHour === undefined || endHour === undefined) continue
+      let hourMatch = false
+      let isPreviousDayWindow = false
+
+      if (startHour < endHour) {
+        hourMatch = hour >= startHour && hour < endHour
+      } else {
+        if (hour >= startHour) {
+          hourMatch = true
+          isPreviousDayWindow = false
+        } else if (hour < endHour) {
+          hourMatch = true
+          isPreviousDayWindow = true
+        }
       }
-    }
 
-    if (!hourMatch) continue
+      if (!hourMatch) continue
 
-    if (w.daysOfWeek && w.daysOfWeek.length > 0) {
-      const targetDay = isPreviousDayWindow ? (dayOfWeek + 6) % 7 : dayOfWeek
-      if (!w.daysOfWeek.includes(targetDay)) continue
+      if (w.daysOfWeek && w.daysOfWeek.length > 0) {
+        const targetDay = isPreviousDayWindow ? (dayOfWeek + 6) % 7 : dayOfWeek
+        if (!w.daysOfWeek.includes(targetDay)) continue
+      }
     }
 
     // Active maintenance window!
     // Check explicit authorization: Must be explicitly configured, not inferred from username
     const authorized =
       globalHelpdeskAccounts.has(ev.username) ||
-      (w.authorizedHelpdeskAccounts?.includes(ev.username) ?? false)
+      (w.authorizedHelpdeskAccounts?.includes(ev.username) ?? false) ||
+      (w.approvedAccounts?.includes(ev.username) ?? false) ||
+      (w.allowedUsers?.includes(ev.username) ?? false)
 
     // Check destination host scope
     let hostPermitted = true
     if (w.permittedHosts && w.permittedHosts.length > 0) {
       hostPermitted = ev.destination ? w.permittedHosts.includes(ev.destination) : false
+    } else if (w.scope && /all workstations/i.test(w.scope)) {
+      hostPermitted = ev.destination
+        ? ev.destination.toUpperCase().startsWith('WS-') ||
+          ev.destination.toLowerCase().includes('workstation') ||
+          ev.destination.toLowerCase().includes('pc')
+        : true
     }
 
     // Check activity scope
@@ -404,30 +439,35 @@ export function detectBurstSuccess(events: AuthEvent[], ctx: RuleContext): RuleM
 
       // Collect all events in window
       const inWindow = sorted.filter((e, j) => j >= i && ms(e.timestamp) <= windowEnd)
-      const failures = inWindow.filter(e => e.outcome === 'failure')
       const successes = inWindow.filter(e => e.outcome === 'success')
 
-      if (failures.length >= failureCount && successes.length > 0) {
-        const lastSuccess = successes[successes.length - 1]
-        matches.push(match(
-          'burst_success',
-          'Failure Burst Followed by Successful Login',
-          'high',
-          username,
-          sorted[i].timestamp,
-          {
-            eventIds: inWindow.map(e => e.id),
-            description: `${failures.length} failures then success within ${windowSeconds}s — possible successful brute-force for "${username}"`,
-            data: {
-              failureCount: failures.length,
-              successAt: lastSuccess.timestamp,
-              sourceIp: lastSuccess.sourceIp,
+      for (const succ of successes) {
+        const failuresBefore = inWindow.filter(
+          e => e.outcome === 'failure' && ms(e.timestamp) < ms(succ.timestamp),
+        )
+
+        if (failuresBefore.length >= failureCount) {
+          matches.push(match(
+            'burst_success',
+            'Failure Burst Followed by Successful Login',
+            'high',
+            username,
+            sorted[i].timestamp,
+            {
+              eventIds: [...failuresBefore.map(e => e.id), succ.id],
+              description: `${failuresBefore.length} failures then success within ${windowSeconds}s — possible successful brute-force for "${username}"`,
+              data: {
+                failureCount: failuresBefore.length,
+                successAt: succ.timestamp,
+                sourceIp: succ.sourceIp,
+              },
             },
-          },
-          'Credential Access (T1110)',
-        ))
-        // Mark window events as processed
-        inWindow.forEach(e => reported.add(e.id))
+            'Credential Access (T1110)',
+          ))
+          // Mark window events as processed
+          inWindow.forEach(e => reported.add(e.id))
+          break
+        }
       }
     }
   }
@@ -855,10 +895,167 @@ function deduplicateMatches(matches: RuleMatch[]): RuleMatch[] {
   })
 }
 
+// ─── Rule 7: Impossible Travel Between Geographically Incompatible Logins ────
+
+/**
+ * Impossible Travel Between Geographically Incompatible Logins
+ *
+ * Examines consecutive successful logins for the same account.
+ * Uses the Haversine formula to compute great-circle distance between coordinates.
+ * Calculates required minimum travel speed from distance and positive elapsed time.
+ *
+ * Triggers an impossible-travel alert only when:
+ * 1. Both events have valid timestamps and are successful logins for the same account.
+ * 2. Both events have valid, trustworthy coordinates in [-90, 90] and [-180, 180].
+ * 3. The second event (or transition) occurs within the analysis period.
+ * 4. The elapsed time is positive (t2 > t1).
+ * 5. The locations are sufficiently far apart (≥ minDistanceKm, default 100 km).
+ * 6. The required travel speed exceeds the configured conservative threshold (> maxSpeedKmH, default 1000 km/h).
+ *
+ * VPN Context Exception:
+ * If either event originates from an approved corporate VPN CIDR, the egress IP location
+ * reflects VPN infrastructure rather than verified physical user travel.
+ * The impossible-travel alert is suppressed with a clear audit trail.
+ */
+export function detectImpossibleTravel(events: AuthEvent[], ctx: RuleContext): RuleMatch[] {
+  const analysisStart = ms(ctx.config.analysisPeriod.start)
+  const analysisEnd = ms(ctx.config.analysisPeriod.end)
+  const maxSpeedKmH =
+    ctx.config.rules.impossibleTravel?.maxSpeedKmH ?? DEFAULT_MAX_TRAVEL_SPEED_KM_H
+  const minDistanceKm =
+    ctx.config.rules.impossibleTravel?.minDistanceKm ?? DEFAULT_MIN_TRAVEL_DISTANCE_KM
+
+  const matches: RuleMatch[] = []
+
+  // Group successful non-duplicate events by username
+  const byUser = new Map<string, AuthEvent[]>()
+  for (const ev of events) {
+    if (ev.isDuplicate) continue
+    if (ev.outcome !== 'success') continue
+
+    const list = byUser.get(ev.username) ?? []
+    list.push(ev)
+    byUser.set(ev.username, list)
+  }
+
+  for (const [username, userEvents] of byUser) {
+    // Sort chronologically ascending
+    const sorted = [...userEvents].sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+
+    for (let i = 1; i < sorted.length; i++) {
+      const prev = sorted[i - 1]
+      const curr = sorted[i]
+
+      const tPrev = ms(prev.timestamp)
+      const tCurr = ms(curr.timestamp)
+
+      // Skip invalid timestamps
+      if (isNaN(tPrev) || isNaN(tCurr)) continue
+
+      // Must have positive elapsed time (equal or out-of-order timestamps skipped)
+      const elapsedMs = tCurr - tPrev
+      if (elapsedMs <= 0) continue
+
+      // Alert only if current event (the destination of the transition) is in analysis period
+      if (tCurr < analysisStart || tCurr >= analysisEnd) continue
+
+      // Both events must have valid, trustworthy coordinates
+      if (
+        !isValidCoordinate(prev.latitude, prev.longitude) ||
+        !isValidCoordinate(curr.latitude, curr.longitude)
+      ) {
+        continue
+      }
+
+      // Calculate great-circle distance
+      const distanceKm = haversineDistanceKm(
+        prev.latitude!,
+        prev.longitude!,
+        curr.latitude!,
+        curr.longitude!,
+      )
+
+      // Must exceed minimum distance to avoid metro-area ISP IP jitter
+      if (distanceKm < minDistanceKm) continue
+
+      // Calculate required velocity
+      const speedKmH = calculateTravelSpeedKmH(distanceKm, elapsedMs)
+      if (speedKmH <= maxSpeedKmH) continue
+
+      // Check VPN Context Suppression:
+      // If either event originates from an approved corporate VPN CIDR, the egress IP location
+      // represents VPN gateway infrastructure rather than verified physical user travel.
+      const vpnPrev = lookupMatchingVpn(prev.sourceIp, ctx.vpnCidrs)
+      const vpnCurr = lookupMatchingVpn(curr.sourceIp, ctx.vpnCidrs)
+
+      if (vpnPrev || vpnCurr) {
+        const matchingVpn = vpnCurr ?? vpnPrev
+        ctx.suppressedAlerts?.push({
+          id: `suppressed-vpn-travel-${curr.id}`,
+          ruleId: 'impossible_travel',
+          ruleName: 'Impossible Travel Between Geographically Incompatible Logins',
+          username,
+          timestamp: curr.timestamp,
+          policyType: 'approved_vpn',
+          reason: `Login sequence from ${prev.location ?? prev.sourceIp} to ${curr.location ?? curr.sourceIp} involves approved corporate VPN (${matchingVpn?.cidr ?? 'approved VPN'}). Egress IP location reflects VPN gateway infrastructure rather than verified physical user travel. Impossible travel alert suppressed to prevent false positive.`,
+          evidence: {
+            eventIds: [prev.id, curr.id],
+            description: `VPN gateway egress (${matchingVpn?.cidr}) distorts geographic velocity calculation (${Math.round(speedKmH)} km/h over ${Math.round(distanceKm)} km)`,
+            data: {
+              event1Id: prev.id,
+              event2Id: curr.id,
+              distanceKm: Math.round(distanceKm),
+              speedKmH: Math.round(speedKmH),
+              vpnCidr: matchingVpn?.cidr,
+            },
+          },
+        })
+        continue
+      }
+
+      const elapsedMinutes = elapsedMs / (60 * 1000)
+      const loc1 = prev.location ?? prev.sourceIp
+      const loc2 = curr.location ?? curr.sourceIp
+      const severity: Severity = speedKmH >= 2000 ? 'critical' : 'high'
+
+      matches.push(
+        match(
+          'impossible_travel',
+          'Impossible Travel Between Geographically Incompatible Logins',
+          severity,
+          username,
+          curr.timestamp,
+          {
+            eventIds: [prev.id, curr.id],
+            description: `Impossible travel: User "${username}" authenticated from ${loc1} and ${loc2} (${Math.round(distanceKm)} km apart) within ${elapsedMinutes < 1 ? '<1' : Math.round(elapsedMinutes)}m. Required travel speed of ${Math.round(speedKmH)} km/h exceeds maximum plausible threshold (${maxSpeedKmH} km/h).`,
+            data: {
+              event1Id: prev.id,
+              event2Id: curr.id,
+              event1Timestamp: prev.timestamp,
+              event2Timestamp: curr.timestamp,
+              event1Location: loc1,
+              event2Location: loc2,
+              event1Ip: prev.sourceIp,
+              event2Ip: curr.sourceIp,
+              distanceKm: Math.round(distanceKm),
+              elapsedMinutes: Math.round(elapsedMinutes * 10) / 10,
+              speedKmH: Math.round(speedKmH),
+              maxSpeedThreshold: maxSpeedKmH,
+            },
+          },
+          'Initial Access (T1078)',
+        ),
+      )
+    }
+  }
+
+  return matches
+}
+
 // ─── Run All Rules ────────────────────────────────────────────────────────────
 
 /**
- * Run all six detection rules against the provided event set.
+ * Run all seven detection rules against the provided event set.
  * Returns all RuleMatches across all rules, unsorted.
  */
 export function runAllRules(events: AuthEvent[], ctx: RuleContext): RuleMatch[] {
@@ -881,5 +1078,6 @@ export function runAllRules(events: AuthEvent[], ctx: RuleContext): RuleMatch[] 
     ...detectUnusualHours(events, ctxWithVpn),
     ...detectNewIpOrLocation(events, ctxWithVpn),
     ...detectNewHosts(events, ctxWithVpn),
+    ...detectImpossibleTravel(events, ctxWithVpn),
   ]
 }

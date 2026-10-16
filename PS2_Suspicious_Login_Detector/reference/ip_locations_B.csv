@@ -1,0 +1,10 @@
+ip_range_cidr,city,country,latitude,longitude,network_type
+10.20.0.0/16,Campus-Bengaluru,IN,12.9716,77.5946,internal
+172.16.60.0/24,Company-VPN-Gateway,IN,12.9716,77.5946,vpn
+203.0.113.0/26,Mumbai,IN,19.076,72.8777,external
+203.0.113.64/26,Delhi,IN,28.6139,77.209,external
+203.0.113.128/26,Chennai,IN,13.0827,80.2707,external
+198.51.100.0/25,Frankfurt,DE,50.1109,8.6821,external
+198.51.100.128/25,Sao Paulo,BR,-23.5505,-46.6333,external
+192.0.2.0/25,Singapore,SG,1.3521,103.8198,external
+192.0.2.128/25,Toronto,CA,43.6532,-79.3832,external

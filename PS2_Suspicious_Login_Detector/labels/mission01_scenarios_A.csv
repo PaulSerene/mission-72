@@ -1,0 +1,7 @@
+scenario_id,file,description,entity,start,end,label,expected_rules
+M1-S01,mission01_auth_logs_days6-7_A.csv,"Failure burst: 8 failed logins in ~6 min, no success",meera.sharma,2026-11-07T14:12:00+05:30,2026-11-07T14:17:15+05:30,suspicious,failure_burst
+M1-S02,mission01_auth_logs_days6-7_A.csv,Failure-then-success from unfamiliar external IP,rahul.gupta / 203.0.113.11,2026-11-07T19:40:00+05:30,2026-11-07T19:45:00+05:30,suspicious,failure_then_success;new_ip_or_location
+M1-S03,mission01_auth_logs_days6-7_A.csv,Password spraying: one external IP fails against 14 accounts in ~20 min,198.51.100.62,2026-11-08T03:10:00+05:30,2026-11-08T03:26:35+05:30,suspicious,password_spraying
+M1-S04,mission01_auth_logs_days6-7_A.csv,Benign lookalike: 3 typos then success from usual IP (below threshold),gauri.reddy,2026-11-08T09:31:00+05:30,2026-11-08T09:33:00+05:30,benign,none
+M1-S05,mission01_auth_logs_days6-7_A.csv,"Benign lookalike: SSO outage - many users fail once from their OWN IPs, then succeed",12 users,2026-11-08T10:05:06+05:30,2026-11-08T10:18:56+05:30,benign,none (not spraying: many source IPs)
+M1-DATA,mission01_auth_logs_days6-7_A.csv,"Data quality: 6 exact duplicate rows (A-E001247, A-E001141, A-E001122, A-E001308, A-E001283, A-E001251)",-,,,data-quality,deduplicate

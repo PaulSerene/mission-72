@@ -1,0 +1,4 @@
+event_id,time,user,src,host,type
+A-X1,2026-11-07T09:00:00+05:30,aarav.nair,10.10.10.20,WS-001,LOGON
+A-X2,not-a-date,diya.rao
+A-X3,2026-11-07T09:05:00+05:30,kabir.verma,10.10.10.22,WS-003,LOGON,SUCCESS,extra,extra

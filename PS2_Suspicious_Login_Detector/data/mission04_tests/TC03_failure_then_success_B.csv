@@ -1,0 +1,8 @@
+event_id,timestamp,username,source_ip,destination_host,event_type,result,logon_type,failure_reason
+B-E001777,2026-11-14T14:30:00Z,mohan_das,203.0.113.77,CORE-MAIL01,LOGON,FAILURE,remote,bad_password
+B-E001778,2026-11-14T14:30:40Z,mohan_das,203.0.113.77,CORE-MAIL01,LOGON,FAILURE,remote,bad_password
+B-E001779,2026-11-14T14:31:20Z,mohan_das,203.0.113.77,CORE-MAIL01,LOGON,FAILURE,remote,bad_password
+B-E001780,2026-11-14T14:32:00Z,mohan_das,203.0.113.77,CORE-MAIL01,LOGON,FAILURE,remote,bad_password
+B-E001781,2026-11-14T14:32:40Z,mohan_das,203.0.113.77,CORE-MAIL01,LOGON,FAILURE,remote,bad_password
+B-E001782,2026-11-14T14:33:20Z,mohan_das,203.0.113.77,CORE-MAIL01,LOGON,FAILURE,remote,bad_password
+B-E001783,2026-11-14T14:36:00Z,mohan_das,203.0.113.77,CORE-MAIL01,LOGON,SUCCESS,remote,

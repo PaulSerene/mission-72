@@ -27,6 +27,7 @@ import type {
   EventCategory,
   LogonType,
 } from '@/types'
+import { isValidCoordinate } from './geo'
 
 // ─── Field Alias Tables ───────────────────────────────────────────────────────
 
@@ -38,6 +39,10 @@ const TIMESTAMP_ALIASES = ['timestamp', 'time', 'datetime', 'date', 'event_time'
 const EVENT_TYPE_ALIASES = ['event_type', 'action', 'event', 'type', 'eventtype', 'event_name', 'category']
 const OUTCOME_ALIASES = ['result', 'status', 'outcome', 'success', 'logon_result', 'auth_result', 'auth_status']
 const LOGON_TYPE_ALIASES = ['logon_type', 'login_type', 'auth_type', 'authtype', 'authentication_type', 'logontype']
+const LATITUDE_ALIASES = ['latitude', 'lat']
+const LONGITUDE_ALIASES = ['longitude', 'lon', 'long', 'lng']
+const EVENT_ID_ALIASES = ['event_id', 'eventid']
+const FAILURE_REASON_ALIASES = ['failure_reason', 'fail_reason', 'reason', 'error']
 
 /**
  * Which detection rule IDs depend on each optional field.
@@ -58,7 +63,8 @@ const FIELD_RULE_REQUIREMENTS: Record<string, string[]> = {
 function normalizeKeys(row: Record<string, string>): Record<string, string> {
   const out: Record<string, string> = {}
   for (const [k, v] of Object.entries(row)) {
-    out[k.toLowerCase().trim().replace(/\s+/g, '_')] = (v ?? '').trim()
+    const valStr = typeof v === 'string' ? v : Array.isArray(v) ? (v as string[]).join(',') : String(v ?? '')
+    out[k.toLowerCase().trim().replace(/\s+/g, '_')] = valStr.trim()
   }
   return out
 }
@@ -104,7 +110,7 @@ function normalizeLogonType(raw: string): LogonType {
   if (v === '3' || v.includes('network')) return 'network'
   if (v === '5' || v.includes('service')) return 'service'
   if (v === '4' || v.includes('batch')) return 'batch'
-  if (v === '10' || v.includes('remote_interact') || v.includes('rdp')) return 'remote_interactive'
+  if (v === '10' || v.includes('remote') || v.includes('rdp')) return 'remote_interactive'
   if (v === '7' || v.includes('unlock')) return 'unlock'
   return 'unknown'
 }
@@ -380,8 +386,26 @@ export function parseAuthCsv(csvText: string, config: AnalysisConfig): Ingestion
     const rawLocation = findField(normalized, LOCATION_ALIASES)
     const location = rawLocation && rawLocation !== '' ? rawLocation.trim() : null
 
+    // ── Optional: latitude & longitude ─────────────────────────────────────────
+    const rawLat = findField(normalized, LATITUDE_ALIASES)
+    const rawLon = findField(normalized, LONGITUDE_ALIASES)
+    let latitude: number | null = null
+    let longitude: number | null = null
+    if (rawLat !== null && rawLat !== '' && rawLon !== null && rawLon !== '') {
+      const latVal = parseFloat(rawLat)
+      const lonVal = parseFloat(rawLon)
+      if (isValidCoordinate(latVal, lonVal)) {
+        latitude = latVal
+        longitude = lonVal
+      }
+    }
+
+    // ── Optional: raw event ID & failure reason ──────────────────────────────
+    const rawEventId = findField(normalized, EVENT_ID_ALIASES)
+    const rawFailureReason = findField(normalized, FAILURE_REASON_ALIASES)
+
     // ── Stable ID & deduplication ─────────────────────────────────────────────
-    const id = stableEventId(username, rawIp, utcTs, outcome, destination ?? '')
+    const id = rawEventId || stableEventId(username, rawIp, utcTs, outcome, destination ?? '')
     const prevCount = seenIds.get(id) ?? 0
     seenIds.set(id, prevCount + 1)
     const isDuplicate = prevCount > 0
@@ -397,8 +421,12 @@ export function parseAuthCsv(csvText: string, config: AnalysisConfig): Ingestion
       outcome,
       logonType,
       location: location ?? null, // filled by auth CSV or IP-location mapping
+      latitude,
+      longitude,
       rawRow: rowIndex,
       isDuplicate,
+      rawEventId: rawEventId ?? undefined,
+      failureReason: rawFailureReason ?? undefined,
     })
   }
 

@@ -1,0 +1,4 @@
+username,account_type,allowed_hosts,notes
+adm_deepa,domain-admin,CORE-DC01;CORE-JUMP01;CORE-FILE01,Should log in from jump host during business hours
+helpdesk_svc,helpdesk,ANY (during declared maintenance windows),Approved maintenance account
+svc_backup,service,CORE-FILE01;CORE-DB01;CORE-WEB01;CORE-APP01;CORE-APP02;CORE-MAIL01;CORE-HR01;CORE-LIB01,"Nightly backup service account, network logons only"

@@ -1,0 +1,8 @@
+event_id,timestamp,username,source_ip,destination_host,event_type,result,logon_type,failure_reason
+B-E001770,2026-11-14T05:30:00Z,leela_pillai,10.20.10.31,LAB-PC-012,LOGON,FAILURE,interactive,bad_password
+B-E001771,2026-11-14T05:30:50Z,leela_pillai,10.20.10.31,LAB-PC-012,LOGON,FAILURE,interactive,bad_password
+B-E001772,2026-11-14T05:31:40Z,leela_pillai,10.20.10.31,LAB-PC-012,LOGON,FAILURE,interactive,bad_password
+B-E001773,2026-11-14T05:32:30Z,leela_pillai,10.20.10.31,LAB-PC-012,LOGON,FAILURE,interactive,bad_password
+B-E001774,2026-11-14T05:33:20Z,leela_pillai,10.20.10.31,LAB-PC-012,LOGON,FAILURE,interactive,bad_password
+B-E001775,2026-11-14T05:34:10Z,leela_pillai,10.20.10.31,LAB-PC-012,LOGON,FAILURE,interactive,bad_password
+B-E001776,2026-11-14T05:35:00Z,leela_pillai,10.20.10.31,LAB-PC-012,LOGON,FAILURE,interactive,bad_password

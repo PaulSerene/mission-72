@@ -1,0 +1,8 @@
+event_id,timestamp,username,source_ip,destination_host,event_type,result,logon_type,failure_reason
+A-E001786,2026-11-07T11:00:00+05:30,pooja.reddy,10.10.10.31,WS-012,LOGON,FAILURE,interactive,bad_password
+A-E001787,2026-11-07T11:00:50+05:30,pooja.reddy,10.10.10.31,WS-012,LOGON,FAILURE,interactive,bad_password
+A-E001788,2026-11-07T11:01:40+05:30,pooja.reddy,10.10.10.31,WS-012,LOGON,FAILURE,interactive,bad_password
+A-E001789,2026-11-07T11:02:30+05:30,pooja.reddy,10.10.10.31,WS-012,LOGON,FAILURE,interactive,bad_password
+A-E001790,2026-11-07T11:03:20+05:30,pooja.reddy,10.10.10.31,WS-012,LOGON,FAILURE,interactive,bad_password
+A-E001791,2026-11-07T11:04:10+05:30,pooja.reddy,10.10.10.31,WS-012,LOGON,FAILURE,interactive,bad_password
+A-E001792,2026-11-07T11:05:00+05:30,pooja.reddy,10.10.10.31,WS-012,LOGON,FAILURE,interactive,bad_password

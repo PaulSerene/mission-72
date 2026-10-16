@@ -28,7 +28,7 @@ import type {
   SuppressedAlert,
 } from '@/types'
 import { parseAuthCsv } from './ingest'
-import { parseAssets, parseIpLocations, lookupLocation } from './assets'
+import { parseAssets, parseIpLocations, lookupLocationRecord } from './assets'
 import { buildBaselines } from './baseline'
 import { runAllRules, type RuleContext } from './rules'
 import { correlateIncidents } from './incidents'
@@ -102,6 +102,10 @@ export function createDefaultConfig(overrides: Partial<AnalysisConfig> = {}): An
       newHosts: {
         newHostCount: 4,
         windowHours: 4,
+      },
+      impossibleTravel: {
+        maxSpeedKmH: 1000,
+        minDistanceKm: 100,
       },
     },
     ...overrides,
@@ -199,8 +203,21 @@ export function runDetectionPipeline(input: PipelineInput): PipelineResult {
   // 4. Enrich events with geographic/network location from IP mappings
   if (ipLocations.length > 0) {
     for (const ev of events) {
-      if (!ev.location) {
-        ev.location = lookupLocation(ev.sourceIp, ipLocations)
+      const match = lookupLocationRecord(ev.sourceIp, ipLocations)
+      if (match) {
+        if (!ev.location) {
+          ev.location = match.location
+        }
+        if (ev.latitude === undefined || ev.latitude === null) {
+          if (match.latitude !== undefined) {
+            ev.latitude = match.latitude
+          }
+        }
+        if (ev.longitude === undefined || ev.longitude === null) {
+          if (match.longitude !== undefined) {
+            ev.longitude = match.longitude
+          }
+        }
       }
     }
   }

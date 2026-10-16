@@ -1,0 +1,4 @@
+event_id,time,user,src,host,type
+B-X1,2026-11-14T03:30:00Z,amit_bose,10.20.10.20,LAB-PC-001,LOGON
+B-X2,not-a-date,bhavna_khan
+B-X3,2026-11-14T03:35:00Z,chetan_bose,10.20.10.22,LAB-PC-003,LOGON,SUCCESS,extra,extra

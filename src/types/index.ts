@@ -156,10 +156,18 @@ export interface AuthEvent {
    * Null until enriched by the analysis pipeline.
    */
   location: string | null
+  /** Optional latitude in degrees [-90, 90] from IP enrichment or auth log. */
+  latitude?: number | null
+  /** Optional longitude in degrees [-180, 180] from IP enrichment or auth log. */
+  longitude?: number | null
   /** 0-indexed row number in the source CSV (for diagnostics). */
   rawRow: number
   /** True if this event is an exact duplicate of an earlier one in the batch. */
   isDuplicate: boolean
+  /** Raw event ID from the source log if present (e.g. 'A-E001815'). */
+  rawEventId?: string
+  /** Failure reason from source log if present (e.g. 'bad_password'). */
+  failureReason?: string
 }
 
 // ─── Ingestion Report ────────────────────────────────────────────────────────
@@ -237,6 +245,12 @@ export interface IpLocationRecord {
   networkInt: number
   /** Pre-computed subnet mask as a 32-bit unsigned integer. */
   maskInt: number
+  /** Optional latitude coordinate in [-90, 90]. */
+  latitude?: number
+  /** Optional longitude coordinate in [-180, 180]. */
+  longitude?: number
+  /** Optional network classification (e.g. 'internal', 'vpn', 'external'). */
+  networkType?: string
 }
 
 /** Result of parsing the asset inventory CSV. */
@@ -298,16 +312,20 @@ export interface TimeWindow {
  * Times are interpreted in UTC.
  */
 export interface MaintenanceWindow {
-  /** Optional identifier for this maintenance window (e.g. 'MW-WEEKLY-SUNDAY'). */
+  /** Optional identifier for this maintenance window (e.g. 'MW-WEEKLY-SUNDAY' or 'MW-A-01'). */
   id?: string
   /** Human-readable description of the window's operational purpose. */
   description?: string
+  /** Optional concrete start ISO 8601 timestamp (e.g. '2026-11-07T13:00:00+05:30'). */
+  start?: string
+  /** Optional concrete end ISO 8601 timestamp (e.g. '2026-11-07T17:00:00+05:30'). */
+  end?: string
   /** Days of week (0=Sun, 6=Sat). If absent, applies to all days. */
   daysOfWeek?: number[]
   /** Hour at which the window starts (0–23, inclusive). */
-  startHour: number
+  startHour?: number
   /** Hour at which the window ends (0–23, exclusive). May wrap midnight (e.g. 22 to 6). */
-  endHour: number
+  endHour?: number
   /**
    * IANA timezone identifier for this window (e.g. 'UTC', 'America/New_York').
    * If omitted, falls back to the analysis config timezone.
@@ -324,6 +342,10 @@ export interface MaintenanceWindow {
    * These accounts are explicitly trusted for host-traversal during the window.
    */
   authorizedHelpdeskAccounts?: string[]
+  /** Approved accounts alias from organizer configuration. */
+  approvedAccounts?: string[]
+  /** Scope description or restriction (e.g. 'All workstations - quarterly patch verification'). */
+  scope?: string
   /**
    * Optional scope of permitted target hosts.
    * If configured, only access to these destination hosts is exempted from new_hosts alerts.
@@ -380,6 +402,12 @@ export interface RuleThresholds {
     newHostCount: number
     /** Window duration in hours. */
     windowHours: number
+  }
+  impossibleTravel?: {
+    /** Maximum plausible travel speed in km/h (default 1000). */
+    maxSpeedKmH: number
+    /** Minimum distance in kilometers required to evaluate impossible travel (default 100). */
+    minDistanceKm: number
   }
 }
 

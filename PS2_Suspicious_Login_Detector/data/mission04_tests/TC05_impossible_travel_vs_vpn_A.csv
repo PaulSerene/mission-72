@@ -1,0 +1,5 @@
+event_id,timestamp,username,source_ip,destination_host,event_type,result,logon_type,failure_reason
+A-E001815,2026-11-07T10:00:00+05:30,sneha.nair,10.10.10.33,WS-014,LOGON,SUCCESS,interactive,
+A-E001817,2026-11-07T10:00:00+05:30,aditya.iyer,10.10.10.34,WS-015,LOGON,SUCCESS,interactive,
+A-E001816,2026-11-07T10:20:00+05:30,sneha.nair,192.0.2.50,SRV-MAIL01,LOGON,SUCCESS,remote,
+A-E001818,2026-11-07T10:25:00+05:30,aditya.iyer,172.16.50.44,SRV-MAIL01,LOGON,SUCCESS,remote,

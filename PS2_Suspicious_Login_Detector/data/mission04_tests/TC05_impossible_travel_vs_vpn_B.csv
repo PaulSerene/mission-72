@@ -1,0 +1,5 @@
+event_id,timestamp,username,source_ip,destination_host,event_type,result,logon_type,failure_reason
+B-E001799,2026-11-14T04:30:00Z,neha_das,10.20.10.33,LAB-PC-014,LOGON,SUCCESS,interactive,
+B-E001801,2026-11-14T04:30:00Z,om_khan,10.20.10.34,LAB-PC-015,LOGON,SUCCESS,interactive,
+B-E001800,2026-11-14T04:50:00Z,neha_das,192.0.2.50,CORE-MAIL01,LOGON,SUCCESS,remote,
+B-E001802,2026-11-14T04:55:00Z,om_khan,172.16.60.44,CORE-MAIL01,LOGON,SUCCESS,remote,

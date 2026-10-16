@@ -214,6 +214,10 @@ export function generateRecommendedTriage(matches: RuleMatch[]): string {
     return 'Potential lateral movement: inspect endpoint security logs on newly accessed hosts, review recent commands executed under this user, and verify authorized operational need.'
   }
 
+  if (ruleIds.has('impossible_travel')) {
+    return 'Suspicious geographic velocity detected: verify user travel status out-of-band, check for concurrent sessions from disparate IP addresses, and consider revoking active refresh tokens.'
+  }
+
   if (ruleIds.has('new_ip_location') || ruleIds.has('unusual_hours')) {
     return 'Anomalous access pattern: verify user travel status and current shift through out-of-band communication, and monitor subsequent session actions.'
   }

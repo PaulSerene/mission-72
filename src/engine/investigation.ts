@@ -213,6 +213,27 @@ export function evaluateEvidenceStrength(
       }
       break
     }
+    case 'impossible_travel': {
+      const speed = typeof match.evidence.data?.speedKmH === 'number' ? match.evidence.data.speedKmH : 0
+      const dist = typeof match.evidence.data?.distanceKm === 'number' ? match.evidence.data.distanceKm : 0
+      if (speed >= 2000) {
+        baseScore = 85
+        criteria.push(
+          `Extreme geographic incompatibility: required velocity of ${speed} km/h (${dist} km) vastly exceeds supersonic aviation.`,
+        )
+      } else if (speed > 1000) {
+        baseScore = 75
+        criteria.push(
+          `Physical travel impossibility: required velocity of ${speed} km/h (${dist} km) exceeds commercial aircraft capabilities.`,
+        )
+      } else {
+        baseScore = 60
+        criteria.push(
+          `Geographic anomaly: required travel speed of ${speed} km/h over ${dist} km between consecutive logins.`,
+        )
+      }
+      break
+    }
     default: {
       baseScore = 50
       criteria.push(`Standard rule pattern with ${totalEventCount} contributing events.`)

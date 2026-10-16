@@ -11,6 +11,7 @@
 
 import Papa from 'papaparse'
 import type { AssetRecord, AssetParseResult, IpLocationRecord, IpLocationParseResult } from '@/types'
+import { isValidCoordinate } from './geo'
 
 // ─── IPv4 Bit Arithmetic ─────────────────────────────────────────────────────
 
@@ -103,7 +104,7 @@ export function parseAssets(csvText: string): AssetParseResult {
   for (let i = 0; i < parsed.data.length; i++) {
     const row = parsed.data[i]
     const host = (row['host'] ?? '').trim().toLowerCase()
-    const role = (row['role'] ?? '').trim()
+    const role = (row['role'] ?? row['host_role'] ?? '').trim()
     const privRaw = (row['privileged'] ?? '').trim().toLowerCase()
 
     if (!host) {
@@ -154,8 +155,17 @@ export function parseIpLocations(csvText: string): IpLocationParseResult {
 
   for (let i = 0; i < parsed.data.length; i++) {
     const row = parsed.data[i]
-    const cidr = (row['cidr'] ?? '').trim()
-    const location = (row['location'] ?? '').trim()
+    const cidr = (row['cidr'] ?? row['ip_range_cidr'] ?? row['ip_range'] ?? row['subnet'] ?? row['network'] ?? '').trim()
+    let location = (row['location'] ?? '').trim()
+    if (!location) {
+      const city = (row['city'] ?? '').trim()
+      const country = (row['country'] ?? '').trim()
+      if (city && country) {
+        location = `${city}, ${country}`
+      } else {
+        location = city || country
+      }
+    }
 
     if (!cidr) {
       invalidRows.push({ rowIndex: i, reason: 'Missing or empty CIDR', raw: row })
@@ -181,11 +191,34 @@ export function parseIpLocations(csvText: string): IpLocationParseResult {
       continue
     }
 
+    // Optional geographic coordinates
+    let latitude: number | undefined
+    let longitude: number | undefined
+    const rawLat = (row['latitude'] ?? row['lat'] ?? '').trim()
+    const rawLon = (row['longitude'] ?? row['lon'] ?? row['long'] ?? row['lng'] ?? '').trim()
+
+    if (rawLat !== '' || rawLon !== '') {
+      const latNum = parseFloat(rawLat)
+      const lonNum = parseFloat(rawLon)
+      if (isValidCoordinate(latNum, lonNum)) {
+        latitude = latNum
+        longitude = lonNum
+      } else {
+        // Invalid coordinate treated as unavailable without rejecting the subnet mapping
+        latitude = undefined
+        longitude = undefined
+      }
+    }
+
+    const networkType = (row['network_type'] ?? row['type'] ?? '').trim() || undefined
+
     locations.push({
       cidr,
       location,
       networkInt: parsed4.network,
       maskInt: parsed4.mask,
+      ...(latitude !== undefined && longitude !== undefined ? { latitude, longitude } : {}),
+      ...(networkType ? { networkType } : {}),
     })
   }
 
@@ -195,19 +228,31 @@ export function parseIpLocations(csvText: string): IpLocationParseResult {
 // ─── Location Lookup ──────────────────────────────────────────────────────────
 
 /**
- * Find the location label for a given IPv4 address using the pre-parsed
- * IP-location records. Returns the first matching record's location,
+ * Find the matching IpLocationRecord for a given IPv4 address using the pre-parsed
+ * IP-location records. Returns the first matching record (including optional coordinates),
  * or null if no CIDR contains the address.
  *
  * Matching is done with correct bit arithmetic — no string-prefix comparison.
  */
-export function lookupLocation(ip: string, locations: IpLocationRecord[]): string | null {
+export function lookupLocationRecord(
+  ip: string,
+  locations: IpLocationRecord[],
+): IpLocationRecord | null {
   for (const loc of locations) {
     if (isIpv4InCidr(ip, { network: loc.networkInt, mask: loc.maskInt })) {
-      return loc.location
+      return loc
     }
   }
   return null
+}
+
+/**
+ * Find the location label for a given IPv4 address using the pre-parsed
+ * IP-location records. Returns the first matching record's location,
+ * or null if no CIDR contains the address.
+ */
+export function lookupLocation(ip: string, locations: IpLocationRecord[]): string | null {
+  return lookupLocationRecord(ip, locations)?.location ?? null
 }
 
 import type { VpnRangeConfig } from '@/types'

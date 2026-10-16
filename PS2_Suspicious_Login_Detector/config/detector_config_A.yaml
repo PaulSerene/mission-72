@@ -1,0 +1,43 @@
+# PS2 detector configuration - variant A
+# All thresholds are starting points; teams may tune them but must document changes.
+timezone_for_reports: Asia/Kolkata      # normalise all timestamps to this zone
+input_timestamp_note: "ISO 8601 with +05:30 offset"
+
+training_period:
+  start: "2026-11-02"
+  end:   "2026-11-06"               # inclusive; learn baselines only from these days
+
+rules:
+  failure_burst:        {min_failures: 5, window_minutes: 10}
+  failure_then_success: {success_within_minutes: 15}
+  password_spraying:    {min_distinct_accounts: 10, window_minutes: 30}
+  unusual_time:         {tolerance_hours: 1}
+  new_ip_or_location:   {enabled: true}
+  impossible_travel:    {max_speed_kmh: 900}
+  host_fan_out:         {min_new_hosts: 5, window_minutes: 60}
+  privileged_off_hours: {off_hours_start: "22:00", off_hours_end: "06:00"}
+
+business_hours: {start: "08:00", end: "19:00", days: [Mon, Tue, Wed, Thu, Fri, Sat, Sun]}   # campus runs 7 days a week
+
+vpn_ranges: ["172.16.50.0/24"]          # logins via VPN must not trigger impossible travel on their own
+
+approved_service_accounts:
+  - {username: svc.backup, allowed_logon_types: [network], schedule: "01:00-03:00 daily"}
+
+maintenance_windows:
+  - id: MW-A-01
+    start: "2026-11-07T13:00:00+05:30"
+    end:   "2026-11-07T17:00:00+05:30"
+    approved_accounts: [helpdesk.svc]
+    scope: "All workstations - quarterly patch verification"
+
+risk_score_weights:   # used to build the 0-100 per-user incident score
+  failure_burst: 15
+  failure_then_success: 30
+  password_spraying: 30
+  unusual_time: 10
+  new_ip_or_location: 10
+  impossible_travel: 30
+  host_fan_out: 30
+  privileged_off_hours: 25
+incident_grouping_window_minutes: 60

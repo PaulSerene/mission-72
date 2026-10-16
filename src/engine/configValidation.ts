@@ -56,16 +56,30 @@ export function validateMaintenanceWindow(
   const errors: string[] = []
   const prefix = `Maintenance window #${index + 1}`
 
-  if (typeof window.startHour !== 'number' || window.startHour < 0 || window.startHour > 23 || !Number.isInteger(window.startHour)) {
-    errors.push(`${prefix}: startHour must be an integer between 0 and 23. Got ${window.startHour}.`)
-  }
+  if (window.start && window.end) {
+    const s = new Date(window.start).getTime()
+    const e = new Date(window.end).getTime()
+    if (isNaN(s)) {
+      errors.push(`${prefix}: start must be a valid ISO 8601 timestamp string.`)
+    }
+    if (isNaN(e)) {
+      errors.push(`${prefix}: end must be a valid ISO 8601 timestamp string.`)
+    }
+    if (!isNaN(s) && !isNaN(e) && s >= e) {
+      errors.push(`${prefix}: start must be strictly before end.`)
+    }
+  } else {
+    if (typeof window.startHour !== 'number' || window.startHour < 0 || window.startHour > 23 || !Number.isInteger(window.startHour)) {
+      errors.push(`${prefix}: startHour must be an integer between 0 and 23. Got ${window.startHour}.`)
+    }
 
-  if (typeof window.endHour !== 'number' || window.endHour < 0 || window.endHour > 23 || !Number.isInteger(window.endHour)) {
-    errors.push(`${prefix}: endHour must be an integer between 0 and 23. Got ${window.endHour}.`)
-  }
+    if (typeof window.endHour !== 'number' || window.endHour < 0 || window.endHour > 23 || !Number.isInteger(window.endHour)) {
+      errors.push(`${prefix}: endHour must be an integer between 0 and 23. Got ${window.endHour}.`)
+    }
 
-  if (window.startHour === window.endHour) {
-    errors.push(`${prefix}: startHour and endHour cannot be identical (${window.startHour}:00). Window must have a non-zero duration.`)
+    if (window.startHour !== undefined && window.endHour !== undefined && window.startHour === window.endHour) {
+      errors.push(`${prefix}: startHour and endHour cannot be identical (${window.startHour}:00). Window must have a non-zero duration.`)
+    }
   }
 
   if (window.timezone && !isValidIanaTimezone(window.timezone)) {
@@ -238,6 +252,16 @@ export function validateConfig(config: AnalysisConfig): ConfigValidationResult {
       }
       if (typeof newHosts.windowHours !== 'number' || newHosts.windowHours <= 0) {
         errors.push(`rules.newHosts.windowHours must be a positive number. Got ${newHosts.windowHours}.`)
+      }
+    }
+
+    if (config.rules.impossibleTravel) {
+      const { maxSpeedKmH, minDistanceKm } = config.rules.impossibleTravel
+      if (typeof maxSpeedKmH !== 'number' || maxSpeedKmH <= 0) {
+        errors.push(`rules.impossibleTravel.maxSpeedKmH must be a positive number. Got ${maxSpeedKmH}.`)
+      }
+      if (typeof minDistanceKm !== 'number' || minDistanceKm <= 0) {
+        errors.push(`rules.impossibleTravel.minDistanceKm must be a positive number. Got ${minDistanceKm}.`)
       }
     }
   }
