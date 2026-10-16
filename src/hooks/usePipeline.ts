@@ -26,6 +26,9 @@ const FIXTURE_PATHS = {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 async function readFileAsText(file: File): Promise<string> {
+  if (typeof file.text === 'function') {
+    return file.text()
+  }
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = () => resolve(reader.result as string)
@@ -85,6 +88,19 @@ export function usePipeline() {
         ipLocationData,
         config,
       })
+
+      if (result.events.length === 0) {
+        const invalidCount = result.ingestionReport?.invalidRows.length ?? 0
+        const firstReason = result.ingestionReport?.invalidRows[0]?.reason
+        const detail = firstReason ? `: ${firstReason}` : ''
+        throw new Error(
+          `No valid authentication events found in "${sourceLabel}". ${
+            invalidCount > 0
+              ? `${invalidCount} invalid row(s) detected${detail}.`
+              : 'The file contains no data rows.'
+          } Please check CSV headers, columns, and timestamp formats.`
+        )
+      }
 
       dispatch({
         type: 'PARSE_COMPLETE',

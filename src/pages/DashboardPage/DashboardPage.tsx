@@ -54,6 +54,7 @@ export default function DashboardPage() {
 
   const hasData = incidents.length > 0 || events.length > 0
   const isLoading = status === 'parsing' || status === 'analyzing'
+  const effectiveTab = activeTab === 'load' && hasData ? 'feed' : activeTab
 
   // Map app status to TopNav engine status
   const engineStatus: EngineStatus = isLoading
@@ -257,72 +258,72 @@ export default function DashboardPage() {
         {/* ── Active Investigation Workspace (When Data is Loaded) ──── */}
         {hasData && (
           <div className={styles.workspace}>
-            {/* Navigation Tabs */}
-            <nav className={styles.tabs} aria-label="Investigation views">
-              <button
-                id="tab-incidents"
-                type="button"
-                className={`${styles.tabBtn} ${activeTab === 'feed' ? styles.activeTab : ''}`}
-                onClick={() => setActiveTab('feed')}
-              >
-                Incident Feed
-                <span className={styles.tabBadge}>{filteredIncidents.length}</span>
-              </button>
-              <button
-                id="tab-visualizations"
-                type="button"
-                className={`${styles.tabBtn} ${activeTab === 'visualizations' ? styles.activeTab : ''}`}
-                onClick={() => setActiveTab('visualizations')}
-              >
-                Visualizations & Analytics
-              </button>
-              <button
-                id="tab-quality"
-                type="button"
-                className={`${styles.tabBtn} ${activeTab === 'quality' ? styles.activeTab : ''}`}
-                onClick={() => setActiveTab('quality')}
-              >
-                Data Quality & Config
-                {issuesCount > 0 && <span className={styles.tabWarnBadge}>!</span>}
-              </button>
-            </nav>
+              {/* Navigation Tabs */}
+              <nav className={styles.tabs} aria-label="Investigation views">
+                <button
+                  id="tab-incidents"
+                  type="button"
+                  className={`${styles.tabBtn} ${effectiveTab === 'feed' ? styles.activeTab : ''}`}
+                  onClick={() => setActiveTab('feed')}
+                >
+                  Incident Feed
+                  <span className={styles.tabBadge}>{filteredIncidents.length}</span>
+                </button>
+                <button
+                  id="tab-visualizations"
+                  type="button"
+                  className={`${styles.tabBtn} ${effectiveTab === 'visualizations' ? styles.activeTab : ''}`}
+                  onClick={() => setActiveTab('visualizations')}
+                >
+                  Visualizations & Analytics
+                </button>
+                <button
+                  id="tab-quality"
+                  type="button"
+                  className={`${styles.tabBtn} ${effectiveTab === 'quality' ? styles.activeTab : ''}`}
+                  onClick={() => setActiveTab('quality')}
+                >
+                  Data Quality & Config
+                  {issuesCount > 0 && <span className={styles.tabWarnBadge}>!</span>}
+                </button>
+              </nav>
 
-            {/* Tab 1: Incident Feed */}
-            {activeTab === 'feed' && (
-              <section className={styles.section} aria-labelledby="incidents-heading">
-                <header className={styles.sectionHeader}>
-                  <div>
-                    <h2 id="incidents-heading" className={styles.sectionTitle}>
-                      Detected Security Incidents
-                    </h2>
-                    <span className={styles.sectionSubtitle}>
-                      Correlated multi-event anomalies ranked by composite risk score [0–100]
-                    </span>
-                  </div>
-                </header>
+              {/* Tab 1: Incident Feed */}
+              {effectiveTab === 'feed' && (
+                <section className={styles.section} aria-labelledby="incidents-heading">
+                  <header className={styles.sectionHeader}>
+                    <div>
+                      <h2 id="incidents-heading" className={styles.sectionTitle}>
+                        Detected Security Incidents
+                      </h2>
+                      <span className={styles.sectionSubtitle}>
+                        Correlated multi-event anomalies ranked by composite risk score [0–100]
+                      </span>
+                    </div>
+                  </header>
 
-                <IncidentFilterBar
-                  totalCount={incidents.length}
-                  filteredCount={filteredIncidents.length}
-                />
+                  <IncidentFilterBar
+                    totalCount={incidents.length}
+                    filteredCount={filteredIncidents.length}
+                  />
 
-                <IncidentTable incidents={filteredIncidents} />
-              </section>
-            )}
+                  <IncidentTable incidents={filteredIncidents} />
+                </section>
+              )}
 
-            {/* Tab 2: Visualizations */}
-            {activeTab === 'visualizations' && (
-              <section className={styles.sectionPadded} aria-label="Incident and activity charts">
-                <Visualizations
-                  incidents={filteredIncidents}
-                  events={events}
-                  ruleMatches={ruleMatches}
-                />
-              </section>
-            )}
+              {/* Tab 2: Visualizations */}
+              {effectiveTab === 'visualizations' && (
+                <section className={styles.sectionPadded} aria-label="Incident and activity charts">
+                  <Visualizations
+                    incidents={filteredIncidents}
+                    events={events}
+                    ruleMatches={ruleMatches}
+                  />
+                </section>
+              )}
 
-            {/* Tab 3: Data Quality & Engine Configuration */}
-            {activeTab === 'quality' && (
+              {/* Tab 3: Data Quality & Engine Configuration */}
+              {effectiveTab === 'quality' && (
               <div className={styles.qualityView}>
                 {ingestionReport && (
                   <IngestionSummary

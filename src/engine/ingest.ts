@@ -32,7 +32,8 @@ import type {
 
 const USERNAME_ALIASES = ['username', 'user', 'account', 'userid', 'user_id', 'login', 'user_name']
 const SRC_IP_ALIASES = ['src_ip', 'source_ip', 'ip', 'sourceip', 'source', 'client_ip', 'srcip', 'src', 'ipaddress', 'ip_address']
-const DEST_ALIASES = ['dest', 'destination', 'host', 'hostname', 'target', 'server', 'dst', 'dest_host', 'target_host']
+const DEST_ALIASES = ['dest', 'destination', 'host', 'hostname', 'target', 'server', 'dst', 'dest_host', 'target_host', 'destination_host', 'destinationhost', 'dest_hostname', 'target_hostname']
+const LOCATION_ALIASES = ['location', 'geo', 'city', 'country', 'ip_location', 'source_location', 'user_location', 'geolocation']
 const TIMESTAMP_ALIASES = ['timestamp', 'time', 'datetime', 'date', 'event_time', 'log_time', 'created_at', 'ts', 'eventtime', 'logtime']
 const EVENT_TYPE_ALIASES = ['event_type', 'action', 'event', 'type', 'eventtype', 'event_name', 'category']
 const OUTCOME_ALIASES = ['result', 'status', 'outcome', 'success', 'logon_result', 'auth_result', 'auth_status']
@@ -181,9 +182,21 @@ export function parseNaiveDatetime(raw: string, timezone: string): string | null
  * (any ISO 8601 string ending in Z or ±HH:MM).
  */
 export function parseZonedDatetime(raw: string): string | null {
-  const t = raw.trim()
-  // Must end with Z or ±HH:MM or ±HHMM
-  if (!(/Z$|[+-]\d{2}:?\d{2}$/.test(t))) return null
+  if (!raw) return null
+  let t = raw.trim()
+
+  // Clean redundant offset + Z, e.g. "2026-10-12T10:00:00+00:00Z" -> "2026-10-12T10:00:00+00:00"
+  t = t.replace(/([+-]\d{2}:?\d{2})\s*Z$/i, '$1')
+
+  // Convert space separator to T if date and time
+  t = t.replace(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})/, '$1T$2')
+
+  // Format ±HHMM to ±HH:MM
+  t = t.replace(/([+-]\d{2})(\d{2})$/, '$1:$2')
+
+  // Must end with Z or ±HH:MM or timezone designation (e.g. UTC, GMT)
+  if (!(/Z$|[+-]\d{2}:?\d{2}$|UTC$|GMT$/i.test(t))) return null
+
   const d = new Date(t)
   return isNaN(d.getTime()) ? null : d.toISOString()
 }
@@ -363,6 +376,10 @@ export function parseAuthCsv(csvText: string, config: AnalysisConfig): Ingestion
     const rawLogonType = findField(normalized, LOGON_TYPE_ALIASES)
     const logonType = rawLogonType ? normalizeLogonType(rawLogonType) : 'unknown'
 
+    // ── Optional: location (if pre-populated in auth CSV) ────────────────────
+    const rawLocation = findField(normalized, LOCATION_ALIASES)
+    const location = rawLocation && rawLocation !== '' ? rawLocation.trim() : null
+
     // ── Stable ID & deduplication ─────────────────────────────────────────────
     const id = stableEventId(username, rawIp, utcTs, outcome, destination ?? '')
     const prevCount = seenIds.get(id) ?? 0
@@ -379,7 +396,7 @@ export function parseAuthCsv(csvText: string, config: AnalysisConfig): Ingestion
       eventType,
       outcome,
       logonType,
-      location: null, // filled by analysis pipeline
+      location: location ?? null, // filled by auth CSV or IP-location mapping
       rawRow: rowIndex,
       isDuplicate,
     })
