@@ -13,10 +13,11 @@
  * - Close button + keyboard Escape listener
  */
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { AuthEvent } from '@/types'
 import { SeverityBadge } from '@/components/SeverityBadge'
 import { useAppState, useAppActions } from '@/state/AppState'
+import { InvestigationWorkspace } from '@/components/Investigation'
 import styles from './IncidentDetailModal.module.css'
 
 function getRiskInterpretation(score: number): { label: string; text: string; color: string } {
@@ -50,8 +51,10 @@ function getRiskInterpretation(score: number): { label: string; text: string; co
 
 export function IncidentDetailModal() {
   const { state } = useAppState()
-  const { selectedIncidentId, incidents, events, acknowledgedIds } = state
+  const { selectedIncidentId, incidents, events, acknowledgedIds, pipelineResult } = state
   const { selectIncident, acknowledgeIncident, unacknowledgeIncident } = useAppActions()
+  const [modalTab, setModalTab] = useState<'investigation' | 'telemetry'>('investigation')
+
 
   const incident = useMemo(() => {
     if (!selectedIncidentId) return null
@@ -174,12 +177,53 @@ export function IncidentDetailModal() {
               <span className={styles.metaLabel}>EVIDENCE EVENTS:</span> {totalEvents}
             </span>
           </div>
+
+          {/* Sub-tab Navigation */}
+          <div className={styles.modalNav} role="tablist" aria-label="Investigation view modes">
+            <button
+              id="btn-tab-investigation-studio"
+              type="button"
+              role="tab"
+              aria-selected={modalTab === 'investigation'}
+              className={`${styles.modalNavBtn} ${modalTab === 'investigation' ? styles.modalNavBtnActive : ''}`}
+              onClick={() => setModalTab('investigation')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" width="14" height="14" aria-hidden="true">
+                <circle cx="6" cy="6" r="3" stroke="currentColor" strokeWidth="2" />
+                <circle cx="18" cy="6" r="3" stroke="currentColor" strokeWidth="2" />
+                <circle cx="12" cy="18" r="3" stroke="currentColor" strokeWidth="2" />
+                <path d="M8.5 7.5L15.5 7.5M7.5 8.5L10.5 15.5M16.5 8.5L13.5 15.5" stroke="currentColor" strokeWidth="1.5" />
+              </svg>
+              Investigation Studio (Topology &amp; Timeline)
+            </button>
+            <button
+              id="btn-tab-soc-triage"
+              type="button"
+              role="tab"
+              aria-selected={modalTab === 'telemetry'}
+              className={`${styles.modalNavBtn} ${modalTab === 'telemetry' ? styles.modalNavBtnActive : ''}`}
+              onClick={() => setModalTab('telemetry')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" width="14" height="14" aria-hidden="true">
+                <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              SOC Triage &amp; Telemetry
+            </button>
+          </div>
         </header>
 
         {/* Modal Body */}
         <div className={styles.body}>
-          {/* Risk Score Meter & Interpretation */}
-          <section className={styles.riskCard}>
+          {modalTab === 'investigation' ? (
+            <InvestigationWorkspace
+              incident={incident}
+              allEvents={events}
+              assets={pipelineResult?.assets ?? []}
+            />
+          ) : (
+            <>
+              {/* Risk Score Meter & Interpretation */}
+              <section className={styles.riskCard}>
             <div className={styles.riskHeader}>
               <div className={styles.riskScoreGroup}>
                 <span className={styles.riskScoreLabel}>COMPOSITE RISK SCORE</span>
@@ -356,6 +400,8 @@ export function IncidentDetailModal() {
               prior to initiating containment.
             </div>
           </div>
+          </>
+          )}
         </div>
 
         {/* Modal Footer */}

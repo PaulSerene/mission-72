@@ -556,3 +556,85 @@ export interface AnalysisResult {
    */
   suppressedAlerts: SuppressedAlert[]
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ─── Milestone 3: Visualization & Risk Analysis Types ─────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Mathematical breakdown of an individual rule match's contribution to incident risk score. */
+export interface RuleScoreContribution {
+  ruleId: string
+  ruleName: string
+  matchIndex: number
+  repetitionCount: number
+  baseScore: number
+  repetitionMultiplier: number
+  rawContribution: number
+  contextMultiplier: number
+  contextReason?: string
+  overlapDiscounted: boolean
+  overlapDiscountReason?: string
+  finalContribution: number
+}
+
+/** Complete mathematical decomposition of an incident's heuristic risk score. */
+export interface IncidentRiskBreakdown {
+  finalScore: number
+  rawCalculatedScore: number
+  contributions: RuleScoreContribution[]
+  synergyBonus: number
+  distinctRuleCount: number
+  cappedAt100: boolean
+}
+
+/** Categorical strength level of supporting evidence. */
+export type EvidenceStrengthLevel = 'Strong' | 'Moderate' | 'Weak'
+
+/** Deterministic evaluation of evidence strength for a detection rule match. */
+export interface EvidenceStrengthEvaluation {
+  level: EvidenceStrengthLevel
+  score: number
+  criteria: string[]
+  resolvedEventCount: number
+  totalEventCount: number
+  allEventsResolved: boolean
+}
+
+/** Node in the user-to-host interaction graph. */
+export type GraphNodeType = 'user' | 'host'
+
+export interface GraphNode {
+  id: string
+  label: string
+  type: GraphNodeType
+  role?: string
+  isPrivileged?: boolean
+  eventCount: number
+  successCount: number
+  failureCount: number
+  relatedRuleIds: string[]
+}
+
+/** Edge connecting a user account to a destination host. */
+export interface GraphEdge {
+  id: string
+  source: string
+  target: string
+  targetHost: string
+  eventCount: number
+  successCount: number
+  failureCount: number
+  logonTypes: string[]
+  eventIds: string[]
+  relatedRuleIds: string[]
+}
+
+/** Graph topology model representing account interactions with destination hosts. */
+export interface UserHostGraphData {
+  userNode: GraphNode
+  hostNodes: GraphNode[]
+  edges: GraphEdge[]
+  totalEvents: number
+  unspecifiedDestinationCount: number
+}
+

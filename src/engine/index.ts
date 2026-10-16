@@ -56,7 +56,17 @@ export type { RuleContext } from './rules'
 export {
   correlateIncidents,
   calculateIncidentRiskScore,
+  decomposeIncidentRiskScore,
   scoreToSeverity,
   generateExplanation,
   generateRecommendedTriage,
 } from './incidents'
+
+// Investigation & Mission 03 Utilities
+export {
+  safeParseTime,
+  sortEventsChronologically,
+  evaluateEvidenceStrength,
+  buildUserHostGraphData,
+} from './investigation'
+

@@ -19,6 +19,7 @@ import { IngestionSummary } from '@/components/IngestionSummary'
 import { IncidentFilterBar, IncidentTable } from '@/components/IncidentFeed'
 import { IncidentDetailModal } from '@/components/IncidentDetail'
 import { Visualizations } from '@/components/Visualizations'
+import { InvestigationWorkspace } from '@/components/Investigation'
 import { ConfigPanel } from '@/components/ConfigPanel'
 import { ContextExceptions } from '@/components/ContextExceptions'
 import { ExportBar } from '@/components/ExportBar'
@@ -27,7 +28,7 @@ import { usePipeline } from '@/hooks/usePipeline'
 import type { EngineStatus } from '@/types'
 import styles from './DashboardPage.module.css'
 
-type ActiveTab = 'feed' | 'visualizations' | 'quality' | 'load'
+type ActiveTab = 'feed' | 'investigation' | 'visualizations' | 'quality' | 'load'
 
 export default function DashboardPage() {
   const { state, dispatch } = useAppState()
@@ -35,7 +36,9 @@ export default function DashboardPage() {
   const { loadDemoData } = usePipeline()
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('feed')
+  const [investigationIncidentId, setInvestigationIncidentId] = useState<string | null>(null)
   const [showLoadPanel, setShowLoadPanel] = useState(false)
+
 
   const {
     status,
@@ -401,6 +404,23 @@ export default function DashboardPage() {
               </button>
 
               <button
+                id="tab-investigation"
+                type="button"
+                role="tab"
+                aria-selected={effectiveTab === 'investigation'}
+                className={`${styles.tabBtn} ${effectiveTab === 'investigation' ? styles.activeTab : ''}`}
+                onClick={() => setActiveTab('investigation')}
+              >
+                <svg viewBox="0 0 24 24" fill="none" className={styles.tabIcon} aria-hidden="true">
+                  <circle cx="6" cy="6" r="3" stroke="currentColor" strokeWidth="1.75" />
+                  <circle cx="18" cy="6" r="3" stroke="currentColor" strokeWidth="1.75" />
+                  <circle cx="12" cy="18" r="3" stroke="currentColor" strokeWidth="1.75" />
+                  <path d="M8.5 7.5L15.5 7.5M7.5 8.5L10.5 15.5M16.5 8.5L13.5 15.5" stroke="currentColor" strokeWidth="1.5" />
+                </svg>
+                Investigation Studio
+              </button>
+
+              <button
                 id="tab-visualizations"
                 type="button"
                 role="tab"
@@ -457,6 +477,29 @@ export default function DashboardPage() {
                   filteredCount={filteredIncidents.length}
                 />
                 <IncidentTable incidents={filteredIncidents} />
+              </section>
+            )}
+
+            {/* Tab: Investigation Studio */}
+            {effectiveTab === 'investigation' && (
+              <section className={styles.sectionPadded} aria-label="Incident Investigation Studio">
+                {incidents.length > 0 ? (
+                  <InvestigationWorkspace
+                    incident={
+                      incidents.find(
+                        i => i.id === (investigationIncidentId ?? state.selectedIncidentId),
+                      ) ?? incidents[0]
+                    }
+                    allEvents={events}
+                    assets={state.pipelineResult?.assets ?? []}
+                    incidentsList={incidents}
+                    onSelectIncident={id => setInvestigationIncidentId(id)}
+                  />
+                ) : (
+                  <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
+                    No security incidents currently detected. Ingest authentication logs or load demo data to investigate.
+                  </div>
+                )}
               </section>
             )}
 

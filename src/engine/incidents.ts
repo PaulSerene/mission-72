@@ -14,7 +14,13 @@
  *   - Repeated firings of the same rule within an incident yield diminishing score increments.
  */
 
-import type { Incident, RuleMatch, Severity } from '@/types'
+import type {
+  Incident,
+  RuleMatch,
+  Severity,
+  RuleScoreContribution,
+  IncidentRiskBreakdown,
+} from '@/types'
 import { RULE_SCORES } from './rules'
 
 // ─── Configuration ───────────────────────────────────────────────────────────
@@ -35,15 +41,24 @@ function shareEventIds(ids1: string[], ids2: string[]): boolean {
 }
 
 /**
- * Compute an explainable, bounded heuristic risk score [0, 100].
- * Applies contextSuppression.scoreMultiplier from individual rule matches
- * to reduce the contribution of de-escalated detections.
+ * Faithfully decompose an explainable, bounded heuristic risk score [0, 100]
+ * into its individual rule contributions, diminishing repetitions, overlap deductions,
+ * contextual reductions, and multi-rule synergy bonus.
  */
-export function calculateIncidentRiskScore(matches: RuleMatch[]): number {
-  if (matches.length === 0) return 0
+export function decomposeIncidentRiskScore(matches: RuleMatch[]): IncidentRiskBreakdown {
+  if (matches.length === 0) {
+    return {
+      finalScore: 0,
+      rawCalculatedScore: 0,
+      contributions: [],
+      synergyBonus: 0,
+      distinctRuleCount: 0,
+      cappedAt100: false,
+    }
+  }
 
-  let score = 0
   const ruleCounts = new Map<string, number>()
+  const contributions: RuleScoreContribution[] = []
 
   // Check if both brute_force and burst_success are present
   const hasBurstSuccess = matches.some(m => m.ruleId === 'burst_success')
@@ -55,45 +70,95 @@ export function calculateIncidentRiskScore(matches: RuleMatch[]): number {
     bsMatches.some(bs => shareEventIds(bf.evidence.eventIds, bs.evidence.eventIds)),
   )
 
-  for (const match of matches) {
+  let scoreSum = 0
+
+  matches.forEach((match, index) => {
     const baseScore = RULE_SCORES[match.ruleId] ?? 20
     const count = (ruleCounts.get(match.ruleId) ?? 0) + 1
     ruleCounts.set(match.ruleId, count)
 
     // Context-aware multiplier from partial suppression
     const ctxMultiplier = match.contextSuppression?.scoreMultiplier ?? 1.0
+    const contextReason = match.contextSuppression?.reason
 
     // Overlap suppression: If both brute_force and burst_success fire on the same sequence,
     // burst_success carries full weight (55) and brute_force is discounted to avoid double-counting.
     if (match.ruleId === 'brute_force' && hasBurstSuccess && overlapEvents) {
-      if (count === 1) {
-        score += Math.round(15 * ctxMultiplier) // reduced secondary contribution
-      } else {
-        score += Math.round(5 * ctxMultiplier)
-      }
-      continue
+      const rawContribution = count === 1 ? 15 : 5
+      const repetitionMultiplier = rawContribution / baseScore
+      const finalContribution = Math.round(rawContribution * ctxMultiplier)
+      scoreSum += finalContribution
+
+      contributions.push({
+        ruleId: match.ruleId,
+        ruleName: match.ruleName,
+        matchIndex: index,
+        repetitionCount: count,
+        baseScore,
+        repetitionMultiplier,
+        rawContribution,
+        contextMultiplier: ctxMultiplier,
+        contextReason,
+        overlapDiscounted: true,
+        overlapDiscountReason:
+          'Secondary brute-force detection discounted to prevent double-counting alongside overlapping burst-success credential compromise sequence',
+        finalContribution,
+      })
+      return
     }
 
     // Diminishing returns for repeated firings of the same rule
-    let contribution: number
+    let repetitionMultiplier: number
     if (count === 1) {
-      contribution = baseScore
+      repetitionMultiplier = 1.0
     } else if (count === 2) {
-      contribution = Math.round(baseScore * 0.4)
+      repetitionMultiplier = 0.4
     } else {
-      contribution = Math.round(baseScore * 0.2)
+      repetitionMultiplier = 0.2
     }
 
-    score += Math.round(contribution * ctxMultiplier)
-  }
+    const rawContribution = Math.round(baseScore * repetitionMultiplier)
+    const finalContribution = Math.round(rawContribution * ctxMultiplier)
+    scoreSum += finalContribution
+
+    contributions.push({
+      ruleId: match.ruleId,
+      ruleName: match.ruleName,
+      matchIndex: index,
+      repetitionCount: count,
+      baseScore,
+      repetitionMultiplier,
+      rawContribution,
+      contextMultiplier: ctxMultiplier,
+      contextReason,
+      overlapDiscounted: false,
+      finalContribution,
+    })
+  })
 
   // Multi-rule synergy: observing 3 or more distinct rules indicates coordinated or advanced activity
   const distinctRules = new Set(matches.map(m => m.ruleId))
-  if (distinctRules.size >= 3) {
-    score += 15
-  }
+  const synergyBonus = distinctRules.size >= 3 ? 15 : 0
+  const rawCalculatedScore = scoreSum + synergyBonus
+  const finalScore = Math.min(100, Math.max(0, Math.round(rawCalculatedScore)))
+  const cappedAt100 = rawCalculatedScore > 100
 
-  return Math.min(100, Math.max(0, Math.round(score)))
+  return {
+    finalScore,
+    rawCalculatedScore,
+    contributions,
+    synergyBonus,
+    distinctRuleCount: distinctRules.size,
+    cappedAt100,
+  }
+}
+
+/**
+ * Compute an explainable, bounded heuristic risk score [0, 100].
+ * Delegates faithfully to decomposeIncidentRiskScore.
+ */
+export function calculateIncidentRiskScore(matches: RuleMatch[]): number {
+  return decomposeIncidentRiskScore(matches).finalScore
 }
 
 /**
