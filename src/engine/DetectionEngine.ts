@@ -5,10 +5,15 @@
  * detection rules to produce alerts. Rules are plain functions with a
  * defined interface, making them easy to unit-test in isolation.
  *
+ * For Milestone 2, the DetectionEngine also provides full-pipeline analysis
+ * via `runDetectionPipeline()`, supporting CSV ingestion, baseline generation,
+ * rule execution, and incident correlation.
+ *
  * This module is intentionally framework-agnostic (no React imports).
  */
 
 import type { Alert, DetectionRule, EngineStatus, LogEntry, Severity } from '@/types'
+import { runDetectionPipeline, type PipelineInput, type PipelineResult } from './pipeline'
 
 // ─── Rule Interface ───────────────────────────────────────────────────────────
 
@@ -34,11 +39,17 @@ export interface EngineOptions {
 /**
  * The core detection engine.
  *
- * Usage:
+ * Usage (Streaming / Milestone 1):
  * ```ts
  * const engine = new DetectionEngine()
  * engine.register(myRule)
  * const alerts = engine.ingest([logEntry1, logEntry2])
+ * ```
+ *
+ * Usage (Pipeline / Milestone 2):
+ * ```ts
+ * const engine = new DetectionEngine()
+ * const result = engine.analyze({ authData: csvString })
  * ```
  */
 export class DetectionEngine {
@@ -71,7 +82,7 @@ export class DetectionEngine {
     return this
   }
 
-  // ── Ingestion ────────────────────────────────────────────────────────────────
+  // ── Streaming Ingestion (Milestone 1) ────────────────────────────────────────
 
   /**
    * Ingest new log entries and run all registered rules against them.
@@ -109,6 +120,23 @@ export class DetectionEngine {
   clearHistory(): this {
     this.history = []
     return this
+  }
+
+  // ── Batch Pipeline Analysis (Milestone 2) ────────────────────────────────────
+
+  /**
+   * Run the full end-to-end detection pipeline (ingest, baselines, rules, incidents).
+   */
+  analyze(input: PipelineInput): PipelineResult {
+    this._status = 'running'
+    try {
+      const result = runDetectionPipeline(input)
+      this._status = 'idle'
+      return result
+    } catch (err) {
+      this._status = 'error'
+      throw err
+    }
   }
 }
 
