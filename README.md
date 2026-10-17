@@ -1,201 +1,238 @@
-# SignalForge
+# SignalForge — Suspicious Login and Activity Detector
 
-**From raw logs to clear action.**
-
-SignalForge is a context-aware security log analysis and incident investigation platform. It ingests authentication CSV logs, builds behavioral baselines, evaluates six detection rules, correlates incidents, and surfaces actionable investigations — all processed locally in the browser.
-
----
-
-## What SignalForge Does
-
-SignalForge is a client-side SOC analysis prototype. It does not connect to any external services, backend APIs, or real-time data feeds. All processing runs in your browser.
-
-**Core capabilities:**
-
-- **CSV ingestion** — parses authentication logs with flexible field aliases (`destination_host`, `location`, etc.) and normalises timestamps across time zones.
-- **Behavioral baselines** — builds per-user profiles of normal working hours, known source IPs, and typical destination hosts from a configurable training window.
-- **Six detection rules** — evaluates each user against brute force, password spray, impossible travel, unusual-hours access, unfamiliar host access, and concurrent session rules.
-- **Incident correlation** — groups rule matches by user and time window into correlated incidents with aggregated risk scores.
-- **Context-aware suppression** — reduces or suppresses risk scores for flagged helpdesk accounts operating during declared maintenance windows, employees connecting through approved VPN ranges, and roles with elevated access grants.
-- **Audit logging** — records every context exception with the suppressing policy, reason, and preserved evidence.
-- **Investigation workspace** — displays evidence events, MITRE ATT&CK tactic tags, and recommended triage steps for each incident.
-- **Acknowledgement workflow** — analysts can acknowledge incidents and reopen them.
-- **Exports** — CSV and self-contained HTML exports of the full incident list.
+> **Autonomous Client-Side SOC Analysis, Behavioral Baselines & Incident Correlation Platform**
+> *Built for Missionathon / Problem Statement 2 (PS-02)*
 
 ---
 
-## What SignalForge Is Not
+## 1. Project Purpose & Problem Statement
 
-- Not a production SIEM.
-- Not connected to any log source, SIEM backend, or authentication provider.
-- Does not perform real-time monitoring.
-- Does not persist data between sessions (except the selected UI theme).
-- Does not guarantee detection of any real attack.
+Modern Security Operations Centers (SOCs) face alert fatigue from high-volume, isolated authentication events. Basic threshold rules often generate excessive false positives on benign edge cases—such as scheduled IT maintenance, employees roaming through enterprise VPN gateways, or temporary single-sign-on (SSO) outages.
+
+**SignalForge** solves this problem by providing a **context-aware, browser-native authentication log analysis platform**. It ingests raw authentication CSV logs, constructs statistical behavioral baselines from historical training activity, evaluates multi-stage correlation rules, and contextualizes detections against asset inventories, corporate maintenance windows, and approved VPN networks.
+
+All processing executes **100% locally in the browser** using client-side TypeScript—guaranteeing zero telemetry leakage, sub-second correlation, and instant investigation without external backend dependencies.
 
 ---
 
-## Quick Start
+## 2. Core Features & Detection Rules
 
+### Context-Aware Detection Engine
+SignalForge evaluates authentication streams against eight specialized detection rules aligned with the MITRE ATT&CK framework:
+
+1. **Brute Force (`brute_force`) [T1110.001]**:
+   - Detects repeated authentication failures against a single user account ($\ge 5$ failures within a 10-minute sliding window).
+2. **Burst Success / Account Compromise (`burst_success`) [T1110]**:
+   - Detects authentication success following multiple recent failures ($\ge 3$ failures followed by a success within 15 minutes).
+3. **Password Spraying (`password_spray`) [T1110.003]**:
+   - Detects a single source IP attempting logins across $\ge 10$ distinct accounts within a 30-minute window.
+4. **Impossible Travel (`impossible_travel`) [T1078]**:
+   - Calculates geographic distance and elapsed velocity between consecutive successful logins for an account using spherical Haversine trigonometry:
+     $$d = 2R \cdot \arcsin\left(\sqrt{\sin^2\left(\frac{\Delta\phi}{2}\right) + \cos\phi_1\cos\phi_2\sin^2\left(\frac{\Delta\lambda}{2}\right)}\right)$$
+   - Flags transitions exceeding commercial aviation limits ($> 900\text{ km/h}$) with a 100 km metropolitan CGNAT jitter floor.
+5. **New IP or Geographic Location (`new_ip_location`) [T1078]**:
+   - Identifies logins originating from an IP address or city/country not present in the user's learned baseline profile.
+6. **Host Fan-Out / Lateral Movement (`new_hosts`) [T1021]**:
+   - Detects rapid authentication attempts across $\ge 3$ distinct destination hosts within a 1-hour window.
+7. **Privileged Off-Hours Access (`unusual_hours`) [T1078]**:
+   - Flags administrative or privileged account access outside normal operational shift hours in the configured timezone.
+8. **Concurrent Active Sessions (`concurrent_sessions`) [T1185]**:
+   - Detects overlapping active sessions originating from distinct, non-routable IP subnets.
+
+### Benign Lookalike Suppression & Policy Auditing
+SignalForge distinguishes genuine threats from legitimate operational anomalies:
+- **Approved Corporate VPN Suppression**: Logins originating from declared corporate VPN CIDRs (e.g. `172.16.50.0/24` or `172.16.60.0/24`) do not trigger false impossible-travel alerts. Independent attack signatures (brute-force or spraying from VPN IPs) are **never suppressed**.
+- **Scheduled Maintenance Scoping**: Rapid host access by designated IT service accounts (e.g. `helpdesk.svc`) during pre-declared maintenance windows (`MW-A-01`, `MW-B-01`) targeting workstations (`WS-*`) is suppressed with a full audit log entry.
+- **SSO Outage Isolation**: High failure volumes during SSO outages originating from distinct user IPs are correctly distinguished from single-IP password spraying.
+- **Typo Tolerance**: 3 or fewer failed attempts followed by success from a known user workstation do not generate alert noise.
+
+### Mission 03 Investigation Studio
+- **Chronological Timeline**: Visual step-by-step audit of suspicious attempts, successes, and policy events.
+- **User-to-Host Graph**: Interactive canvas displaying destination workstations, servers, and domain controllers accessed by compromised accounts.
+- **Per-User Risk Breakdown**: Granular scoring contribution breakdown by detection rule with MITRE ATT&CK mappings.
+- **Evidence Explanations**: Plain-English rationale with supporting event IDs and evidence confidence indicators.
+
+---
+
+## 3. Architecture & Data Flow
+
+```
+                      ┌──────────────────────────────────────┐
+                      │    Raw Authentication CSV Telemetry   │
+                      │  (TC01-TC11, Multi-day Logs, Custom) │
+                      └──────────────────┬───────────────────┘
+                                         │
+                                         ▼
+                      ┌──────────────────────────────────────┐
+                      │    Ingestion & Normalization Layer   │
+                      │  - PapaParse Stream Parsing          │
+                      │  - Schema Normalization & Aliases    │
+                      │  - ISO-8601 & Timezone Conversion    │
+                      │  - FNV-1a Event Deduplication        │
+                      └──────────────────┬───────────────────┘
+                                         │
+                                         ▼
+                      ┌──────────────────────────────────────┐
+                      │    Profile Detection & Context Prep  │
+                      │  - Auto-Detect Variant A / B / Synth │
+                      │  - CIDR Geo Lookup & Asset Inventory │
+                      │  - Fallback Baseline Learning (D1-5) │
+                      └──────────────────┬───────────────────┘
+                                         │
+                                         ▼
+                      ┌──────────────────────────────────────┐
+                      │    Detection Engine Core (8 Rules)   │
+                      │  - Sliding Window Temporal Counters  │
+                      │  - Haversine Velocity Calculations   │
+                      │  - Policy & Maintenance Evaluator    │
+                      └──────────────────┬───────────────────┘
+                                         │
+                                         ▼
+                      ┌──────────────────────────────────────┐
+                      │    Correlation & Scoring Layer       │
+                      │  - Incident Grouping (Account/Window)│
+                      │  - Risk Scoring & Severity Weighting │
+                      │  - Policy Exception Audit Trail      │
+                      └──────────────────┬───────────────────┘
+                                         │
+                                         ▼
+                      ┌──────────────────────────────────────┐
+                      │   React 19 UI & Investigation Studio │
+                      │  - Executive KPI StatCards           │
+                      │  - Filterable Incident Feed          │
+                      │  - Interactive User-Host Graph       │
+                      │  - Evidence Timeline & Audit Modal   │
+                      │  - CSV / Standalone HTML Export      │
+                      └──────────────────────────────────────┘
+```
+
+---
+
+## 4. Prerequisites & Installation
+
+### Prerequisites
+- **Node.js**: v20.x or v22.x LTS
+- **Package Manager**: `npm` v10+
+
+### Installation
 ```bash
-# Clone and install
+# Clone the repository
+git clone https://github.com/PaulSerene/mission-72.git
+cd mission-72
+
+# Install dependencies
 npm install
-
-# Start the development server
-npm run dev
-
-# Run the full test suite
-npm test -- --run
-
-# Production build
-npm run build
-```
-
-Open `http://localhost:5173` in your browser.
-
----
-
-## Loading Data
-
-### Synthetic demo
-
-Click **Load Synthetic Demo Dataset** on the import screen. This loads 280 pre-generated events across 10 detection scenarios without prompting for a file.
-
-### Custom CSV
-
-Click the dropzone (or the browse button) to select your own authentication log CSV. The expected column names are:
-
-| Column | Aliases accepted |
-|--------|-----------------|
-| `timestamp` | — |
-| `user` | `username`, `user_id` |
-| `source_ip` | `src_ip`, `ip`, `source` |
-| `destination_host` | `dest_host`, `host`, `hostname`, `target`, `resource` |
-| `status` | `result`, `outcome` |
-| `service` | `application`, `app` |
-| `failure_reason` | `reason`, `error` |
-| `location` | `geo`, `city`, `country` |
-
-Select the source timezone, optionally upload an asset inventory CSV and an IP-to-location CSV, then click **Run Analysis**.
-
----
-
-## Architecture
-
-```
-src/
-├── components/           # All UI components (CSS Modules)
-│   ├── ConfigPanel/      # Detection threshold and policy configuration
-│   ├── ContextExceptions/# Context-exception audit log
-│   ├── ErrorBoundary/    # Top-level error recovery
-│   ├── ExportBar/        # CSV + HTML export controls
-│   ├── IncidentDetail/   # Investigation modal
-│   ├── IncidentFeed/     # Incident table and filter bar
-│   ├── IngestionSummary/ # Data quality and parse-result summary
-│   ├── LoadDataPanel/    # CSV upload and demo-load controls
-│   ├── StatCard/         # KPI metric cards
-│   ├── TopNav/           # Application shell and theme toggle
-│   └── Visualizations/  # Severity distribution and activity charts
-│
-├── engine/               # Detection engine (pure TypeScript, no React)
-│   ├── assets.ts         # Asset/IP-location CSV parsing and CIDR matching
-│   ├── baseline.ts       # Behavioral baseline builder
-│   ├── DetectionEngine.ts# Core detection utilities and risk scoring
-│   ├── incidents.ts      # Incident correlator
-│   ├── ingest.ts         # CSV parser and timestamp normalizer
-│   ├── pipeline.ts       # runDetectionPipeline orchestrator
-│   └── rules.ts          # Six detection rules
-│
-├── hooks/
-│   ├── usePipeline.ts    # Async pipeline execution hook
-│   └── useTheme.ts       # Dark/light theme with localStorage persistence
-│
-├── pages/
-│   └── DashboardPage/    # Main application page and tab layout
-│
-├── state/
-│   └── AppState.tsx      # React Context + useReducer application state
-│
-├── test/                 # Integration and regression tests
-├── types/                # Shared TypeScript type definitions
-├── utils/                # Export utilities
-└── data/
-    └── generate.ts       # Synthetic dataset generator (seeded PRNG)
 ```
 
 ---
 
-## Design System
-
-SignalForge uses a CSS custom properties design system with genuine dark and light themes.
-
-### Themes
-
-- **Dark** (default): Deep navy base (`#0b0f1a`) with layered charcoal surfaces.
-- **Light**: Soft cool-gray base (`#f2f4f8`) with white surfaces.
-
-The active theme is toggled via the sun/moon button in the top navigation bar. The selection persists in `localStorage` under the key `sf-theme`. On first visit, the system color scheme preference (`prefers-color-scheme`) is respected.
-
-### Color tokens
-
-All colors are defined as CSS custom properties in `src/index.css` under `[data-theme="dark"]` and `[data-theme="light"]` selectors. Severity-semantic colors (`--color-critical`, `--color-high`, `--color-medium`, `--color-low`, `--color-info`) are consistent across both themes.
-
-### Components
-
-All components use CSS Modules (`*.module.css`) and reference design tokens via `var(--color-*)`. No component has hardcoded dark-mode colors.
-
----
-
-## Testing
-
-```bash
-npm test -- --run          # Run all tests once
-npm run test:watch         # Watch mode
-npm run test:coverage      # Coverage report
-```
-
-**Test suite: 154 tests across 13 files.**
-
-| Suite | Tests |
-|-------|-------|
-| Detection engine unit tests | 23 |
-| Baseline builder | 7 |
-| Ingestion / timestamp normalisation | 17 |
-| Asset and CIDR matching | 13 |
-| Incident correlation | 10 |
-| Configuration validation | 15 |
-| Pipeline + synthetic generator | 17 |
-| Export utilities | 3 |
-| Application state reducer | 13 |
-| DetectionEngine utilities | 16 |
-| Integration tests | 8 |
-| File-picker regression | 7 |
-| Custom CSV regression | 5 |
-
----
-
-## Scripts
+## 5. Build & Execution Commands
 
 | Command | Description |
-|---------|-------------|
-| `npm run dev` | Start Vite development server |
-| `npm run build` | TypeScript check + production build |
-| `npm run preview` | Serve the production build locally |
-| `npm test -- --run` | Run the full test suite once |
-| `npm run test:watch` | Vitest watch mode |
-| `npm run test:coverage` | Coverage report |
-| `npm run lint` | Run oxlint on `src/` |
-| `npm run typecheck` | TypeScript type-check without emit |
-| `npm run generate-data` | Regenerate synthetic fixture data |
+| :--- | :--- |
+| `npm run dev` | Start Vite development server (default: `http://localhost:5173`) |
+| `npm run build` | Compile TypeScript (`tsc -b`) and bundle for production (`vite build`) |
+| `npm run preview` | Locally preview production build bundle from `dist/` |
+| `npm test -- --run` | Execute complete test suite (264 tests across 20 files) |
+| `npm run test:watch` | Run tests in interactive Vitest watch mode |
+| `npm run test:coverage`| Generate unit test code coverage report |
+| `npm run lint` | Run linter (`oxlint src`) across all source files |
+| `npm run typecheck` | Perform strict TypeScript type checking without emitting files |
 
 ---
 
-## Technology
+## 6. Configuration & Input Data Requirements
 
-| Layer | Technology |
-|-------|-----------|
-| UI | React 19 + TypeScript |
-| Build | Vite 8 |
-| Styling | CSS Modules + CSS custom properties |
-| CSV parsing | PapaParse |
-| Tests | Vitest 5 + jsdom + React Testing Library |
-| Linting | oxlint |
+### Authentication Log Schema
+The parser accepts standard headers and common SIEM aliases:
+
+| Canonical Field | Recognized Aliases | Required | Description |
+| :--- | :--- | :---: | :--- |
+| `event_id` | `eventid`, `id` | Optional | Unique event identifier (auto-hashed if missing) |
+| `timestamp` | `time`, `datetime`, `@timestamp` | **Yes** | ISO-8601 with offset (`+05:30`) or UTC (`Z`) |
+| `username` | `user`, `account`, `user_id` | **Yes** | User account name |
+| `source_ip` | `src_ip`, `ip`, `client_ip` | **Yes** | IPv4 or IPv6 address |
+| `destination_host` | `host`, `hostname`, `target`, `resource` | **Yes** | Target workstation or server |
+| `result` | `status`, `outcome` | **Yes** | `success` / `failure` |
+| `logon_type` | `type`, `logon_method` | Optional | `interactive`, `remote_interactive` (RDP), `network` |
+| `failure_reason` | `reason`, `error`, `sub_status` | Optional | Failure code (e.g. `bad_password`, `account_locked`) |
+
+### Reference Telemetry & Baseline Configuration
+- **Variant A**: Timestamps in Indian Standard Time (`+05:30`). Uses `ip_locations_A.csv`, `asset_list_A.csv`, and corporate VPN CIDR `172.16.50.0/24`.
+- **Variant B**: Timestamps in UTC (`Z`). Uses `ip_locations_B.csv`, `asset_list_B.csv`, and corporate VPN CIDR `172.16.60.0/24`.
+- **Automatic Fallback**: If a user uploads an isolated test CSV (e.g., `TC02_repeated_failures_A.csv`) without uploading manual reference tables, SignalForge automatically identifies the dataset variant and loads official reference lookups and baseline profiles.
+
+---
+
+## 7. Sample Datasets & Verified Results
+
+### Official Organizer Dataset Validation (`PS2_Suspicious_Login_Detector`)
+Executed in `src/test/officialDatasetValidation.test.ts` and `src/test/uploadWorkflowAudit.test.ts`:
+
+| Test Case | Scenario Description | Expected Incident | Test Result |
+| :--- | :--- | :--- | :---: |
+| **TC01 (A/B)** | Normal user logins during business hours | 0 attack alerts / 0 incidents | **PASS** |
+| **TC02 (A/B)** | 7 failed logins spaced 50s apart | `brute_force` incident ($\ge 5$ failures in 10m) | **PASS** |
+| **TC03 (A/B)** | 6 failures followed by 1 success | `burst_success` incident ($\ge 3$ fails + success in 15m) | **PASS** |
+| **TC04 (A/B)** | 1 IP attempting 15 distinct user accounts | 15 `password_spray` incidents (1 per victim account) | **PASS** |
+| **TC05 (A/B)** | Distant login vs. corporate VPN transition | 1 `impossible_travel` incident; corporate VPN suppressed | **PASS** |
+| **TC06 (A/B)** | `helpdesk.svc` patching during `MW-01` vs. user | `helpdesk.svc` suppressed in MW; user flagged outside MW | **PASS** |
+| **TC07 (A/B)** | Duplicate rows with identical event content | 8 duplicate rows stripped; 0 false attack alerts | **PASS** |
+| **TC08 (A/B)** | Out-of-order logs & invalid timestamp strings | Chronologically sorted; invalid timestamp row safely skipped | **PASS** |
+| **TC09 (A/B)** | Missing / empty IP rows | Malformed rows rejected with diagnostics; 0 crashes | **PASS** |
+| **TC10 (A/B)** | Extra comma columns / malformed headers | Malformed rows rejected with diagnostics; 0 crashes | **PASS** |
+| **TC11 (A/B)** | Empty file with header only | 0 events, 0 alerts, clean UI handling | **PASS** |
+
+### Verified Test Suite Counts
+- **Total Test Files**: 20 files
+- **Total Tests Passing**: **264 tests passed (0 failures, 0 skipped)**
+- **Build Status**: Clean production bundle in ~550ms (`tsc -b && vite build`)
+- **Linter Status**: 0 errors (`oxlint src`)
+
+---
+
+## 8. Limitations & Future Roadmap
+
+1. **Distributed Residential Proxy Sprays**:
+   - `password_spray` groups failures by source IP address. Adversaries routing attacks through botnets where each IP only attempts 1 account will evade single-IP grouping. Future improvement: aggregate failure velocity across target domains.
+2. **Missing Geolocation Data**:
+   - For private unmapped subnets or external IPs without lookup records, coordinates are unavailable. SignalForge conservatively emits no travel claim rather than hallucinating coordinates.
+3. **Plausible-Interval Credential Replay**:
+   - Attackers delaying replay of stolen credentials until the duration of a commercial flight has elapsed will evade velocity threshold alerting.
+4. **Session Duration Tracking**:
+   - Authentication events capture logon timestamps, but logoff telemetry is frequently omitted in standard auth logs.
+
+---
+
+## 9. AI Assistance Disclosure
+
+In the development of SignalForge, AI coding assistants (including Anthropic Claude and Google Antigravity / DeepMind agentic tools) were used in accordance with hackathon guidelines:
+- **Assisted Areas**:
+  - Drafting initial boilerplate for CSS custom property tokens and UI layout components.
+  - Formulating mathematical equations for spherical Haversine trigonometry in TypeScript.
+  - Generating synthetic test fixtures and parametric test permutations.
+  - Assisting in debugging sliding window boundary conditions across timezone offsets.
+- **Human Governance**:
+  - All architecture, detection logic, threshold tuning, test assertions, security policies, and code reviews were directed, validated, and verified by the development team.
+
+---
+
+## 10. Team Information & Contributions
+
+> **Note**: Team members please confirm and fill in specific roles below prior to final submission.
+
+- **[TEAM MEMBER 1 - NAME/GITHUB]**: Architecture, Ingestion Pipeline & Detection Rules Engine
+- **[TEAM MEMBER 2 - NAME/GITHUB]**: Mission 03 Investigation Studio, User-to-Host Graph & Visualizations
+- **[TEAM MEMBER 3 - NAME/GITHUB]**: Impossible-Travel Physics, Policy Suppression & Test Verification
+
+---
+
+## 11. Deployment
+
+- **Deployment URL**: *[PENDING FINAL VERCEL DEPLOYMENT BY TEAM]*
+- **Deployment Platform**: Vercel (Single-Page Application)
+- **Vercel Settings**:
+  - Framework Preset: `Vite`
+  - Build Command: `npm run build`
+  - Output Directory: `dist`
+  - Node.js Version: `20.x`
