@@ -96,10 +96,10 @@ describe('Rule 1: detectBruteForce', () => {
 
   it('does not trigger when failures are outside sliding window', () => {
     const ctx = createContext({ victor: {} })
-    // 5 failures spaced 60s apart = 240s > 120s window
+    // 5 failures spaced 4m (240s) apart = 960s > sliding window
     const events: AuthEvent[] = Array.from({ length: 5 }, (_, i) =>
       makeAuthEvent({
-        timestamp: `2026-10-09T14:${String(i).padStart(2, '0')}:00Z`,
+        timestamp: `2026-10-09T14:${String(i * 4).padStart(2, '0')}:00Z`,
         username: 'victor',
         outcome: 'failure',
       }),

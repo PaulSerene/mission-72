@@ -11,7 +11,7 @@
 
 import { useCallback } from 'react'
 import { useAppState } from '@/state/AppState'
-import { runDetectionPipeline, createDefaultConfig } from '@/engine/pipeline'
+import { runDetectionPipeline } from '@/engine/pipeline'
 import { generateSyntheticDataset } from '@/data/generate'
 import type { AnalysisConfig } from '@/types'
 
@@ -77,8 +77,6 @@ export function usePipeline() {
       const assetData = assetFile ? await readFileAsText(assetFile) : undefined
       const ipLocationData = ipLocationFile ? await readFileAsText(ipLocationFile) : undefined
 
-      const effectiveConfig = createDefaultConfig(config)
-
       dispatch({ type: 'START_ANALYZING' })
       await new Promise(r => setTimeout(r, 0))
 
@@ -105,7 +103,7 @@ export function usePipeline() {
       dispatch({
         type: 'PARSE_COMPLETE',
         result,
-        config: effectiveConfig,
+        config: result.config,
         rawAuthCsv: authData,
         rawAssetCsv: assetData,
         rawIpLocationCsv: ipLocationData,
@@ -147,8 +145,6 @@ export function usePipeline() {
         ipLocationData = dataset.ipLocationsCsv
       }
 
-      const effectiveConfig = createDefaultConfig(config)
-
       dispatch({ type: 'START_ANALYZING' })
       await new Promise(r => setTimeout(r, 0))
 
@@ -162,7 +158,7 @@ export function usePipeline() {
       dispatch({
         type: 'PARSE_COMPLETE',
         result,
-        config: effectiveConfig,
+        config: result.config,
         rawAuthCsv: authData,
         rawAssetCsv: assetData,
         rawIpLocationCsv: ipLocationData,
@@ -187,7 +183,6 @@ export function usePipeline() {
     await new Promise(r => setTimeout(r, 0))
 
     try {
-      const effectiveConfig = createDefaultConfig(config)
       const result = runDetectionPipeline({
         authData: rawAuthCsv,
         assetData: rawAssets,
@@ -195,7 +190,6 @@ export function usePipeline() {
         config,
       })
       dispatch({ type: 'ANALYSIS_COMPLETE', result })
-      void effectiveConfig // keep reference
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       dispatch({ type: 'SET_ERROR', message: `Re-analysis failed: ${message}` })

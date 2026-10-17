@@ -86,8 +86,8 @@ export function buildBaselines(
       if (ev.destination) d.hosts.add(ev.destination)
     }
 
-    // Login hour distribution: track all events (success and failure)
-    const hour = new Date(ev.timestamp).getUTCHours()
+    // Login hour distribution: track all events in configured timezone
+    const { hour } = getHourAndDayInTimezone(ev.timestamp, config.timezone)
     d.hourCounts[hour]++
   }
 
@@ -170,5 +170,44 @@ export function isUnusualHour(
   }
 
   return true
+}
+
+/**
+ * Convert an ISO timestamp to local hour (0-23) and day-of-week (0=Sun..6=Sat)
+ * for a specific IANA timezone.
+ */
+export function getHourAndDayInTimezone(
+  isoTimestamp: string,
+  timezone: string = 'UTC',
+): { hour: number; dayOfWeek: number } {
+  try {
+    const d = new Date(isoTimestamp)
+    const fmt = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      hour: 'numeric',
+      hour12: false,
+      weekday: 'short',
+    })
+    const parts = fmt.formatToParts(d)
+    let hour = d.getUTCHours()
+    let weekdayStr = ''
+    for (const p of parts) {
+      if (p.type === 'hour') {
+        const val = parseInt(p.value, 10)
+        hour = val === 24 ? 0 : val
+      }
+      if (p.type === 'weekday') {
+        weekdayStr = p.value
+      }
+    }
+    const days: Record<string, number> = {
+      Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
+    }
+    const dayOfWeek = weekdayStr in days ? days[weekdayStr] : d.getUTCDay()
+    return { hour, dayOfWeek }
+  } catch {
+    const d = new Date(isoTimestamp)
+    return { hour: d.getUTCHours(), dayOfWeek: d.getUTCDay() }
+  }
 }
 

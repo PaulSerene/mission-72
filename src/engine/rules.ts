@@ -87,10 +87,6 @@ function ms(ts: string): number {
   return new Date(ts).getTime()
 }
 
-function utcHour(ts: string): number {
-  return new Date(ts).getUTCHours()
-}
-
 function sortByTime(evs: AuthEvent[]): AuthEvent[] {
   return [...evs].sort((a, b) => a.timestamp.localeCompare(b.timestamp))
 }
@@ -605,12 +601,13 @@ export function detectUnusualHours(events: AuthEvent[], ctx: RuleContext): RuleM
     const baseline = ctx.baselines.get(ev.username)
     if (!baseline) continue // no baseline → can't assess; skip
 
-    const hour = utcHour(ev.timestamp)
+    const { hour } = getHourAndDayInTimezone(ev.timestamp, ctx.config.timezone)
     if (!isUnusualHour(hour, baseline, offHoursStart, offHoursEnd)) continue
 
+    const tzLabel = ctx.config.timezone ?? 'UTC'
     const note = baseline.status === 'none'
-      ? `User "${ev.username}" has no baseline — off-hours login at ${String(hour).padStart(2, '0')}:00 UTC`
-      : `User "${ev.username}" has never logged in at ${String(hour).padStart(2, '0')}:00 UTC during the training period`
+      ? `User "${ev.username}" has no baseline — off-hours login at ${String(hour).padStart(2, '0')}:00 ${tzLabel}`
+      : `User "${ev.username}" has never logged in at ${String(hour).padStart(2, '0')}:00 ${tzLabel} during the training period`
 
     matches.push(match(
       'unusual_hours',

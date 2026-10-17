@@ -17,6 +17,7 @@ export function LoadDataPanel() {
   const [assetFile, setAssetFile] = useState<File | null>(null)
   const [ipFile, setIpFile] = useState<File | null>(null)
   const [timezone, setTimezone] = useState('UTC')
+  const [tzOverridden, setTzOverridden] = useState(false)
   const authRef = useRef<HTMLInputElement>(null)
   const assetRef = useRef<HTMLInputElement>(null)
   const ipRef = useRef<HTMLInputElement>(null)
@@ -24,7 +25,20 @@ export function LoadDataPanel() {
   const isLoading = state.status === 'parsing' || state.status === 'analyzing'
 
   function handleAuthFile(files: FileList | null) {
-    if (files && files[0]) setAuthFile(files[0])
+    if (files && files[0]) {
+      const file = files[0]
+      setAuthFile(file)
+      if (!tzOverridden) {
+        if (
+          file.name.includes('_A.') ||
+          file.name.includes('_B.') ||
+          file.name.includes('mission0') ||
+          file.name.includes('TC')
+        ) {
+          setTimezone('Asia/Kolkata')
+        }
+      }
+    }
   }
 
   function handleDrop(e: React.DragEvent<HTMLDivElement>) {
@@ -39,7 +53,7 @@ export function LoadDataPanel() {
       authFile,
       assetFile: assetFile ?? undefined,
       ipLocationFile: ipFile ?? undefined,
-      config: { timezone },
+      config: tzOverridden ? { timezone } : undefined,
       label: authFile.name,
     })
   }
@@ -156,7 +170,10 @@ export function LoadDataPanel() {
           id="select-timezone"
           className={styles.tzSelect}
           value={timezone}
-          onChange={e => setTimezone(e.target.value)}
+          onChange={e => {
+            setTimezone(e.target.value)
+            setTzOverridden(true)
+          }}
           disabled={isLoading}
         >
           <option value="UTC">UTC</option>

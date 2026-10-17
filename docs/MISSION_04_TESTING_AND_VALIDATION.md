@@ -19,7 +19,7 @@ Rather than relying primarily on synthetic tests, the core detection pipeline wa
 
 ### Key Deliverables & Validation Results
 - **26/26 Official Dataset Tests Passing**: 100% pass rate across all 11 Mission 04 test scenarios for both Variant A and Variant B, plus full Mission 01 and Mission 02 ground-truth evaluations (`src/test/officialDatasetValidation.test.ts`).
-- **Full Workspace Regression**: **249/249 tests passing** across 18 test files (`npm test -- --run`).
+- **Full Workspace Regression**: **264/264 tests passing** across 20 test files (`npm test -- --run`).
 - **Production Compilation**: Clean `tsc -b && vite build` bundle output in ~389ms.
 - **Code Quality & Security**: 0 lint errors (`oxlint`), 0 audit vulnerabilities (`npm audit`).
 - **Non-Destructive Integrity**: Zero organizer CSV files modified, overwritten, or renamed. The application's ingestion engine was adapted to respect the organizer's exact data contract.
@@ -190,6 +190,11 @@ During validation against the official datasets, 5 concrete mismatches/edge case
 | **3** | `normalizeLogonType` (`src/engine/ingest.ts`) | Official logs use `remote` for RDP sessions. Previously only matched `remote_interact` or `10`, normalizing `remote` to `unknown`. | Updated regex to `v === '10' \|\| v.includes('remote') \|\| v.includes('rdp')` $\rightarrow$ `remote_interactive`. |
 | **4** | Maintenance Windows (`src/engine/rules.ts`, `configValidation.ts`) | Organizer config defines concrete ISO windows (`start: "2026-11-07T13:00:00+05:30"`, `approved_accounts`, `scope: "All workstations"`). SignalForge previously only supported hour integers (`startHour: 13`). | Extended `MaintenanceWindow` to support concrete ISO timestamps (`start`, `end`), `approvedAccounts`, and workstation scope matching (`WS-*`). |
 | **5** | Variant B Timezone Offset (`officialDatasetValidation.test.ts`) | Variant B logs use UTC timestamps (`Z`), but the organizer defines Days 1–5 and 6–7 in `Asia/Kolkata` (`+05:30`). Day 6 starts at `2026-11-13T18:30:00Z`. A naive `2026-11-14T00:00:00Z` analysis window was clipping 04:00 IST events. | Aligned Variant B UTC analysis window to `2026-11-13T18:30:00Z` to `2026-11-15T18:30:00Z`, capturing all Day 6–7 events. |
+| **6** | Sliding Window Durations (`pipeline.ts`, `TC02`/`TC03`/`TC04`) | Default windows were hardcoded to 120s (brute force), 180s (burst success), and 300s (spray). Official TC02 events span 300s (50s intervals), TC03 spans 360s, and TC04 spans 18m40s. | Aligned default windows with official `detector_config_{A,B}.yaml`: bruteForce 600s (10m), burstSuccess 900s (15m), passwordSpray 1800s (30m). |
+| **7** | Approved VPN CIDR Conflict (`pipeline.ts`, `TC05`) | App default hardcoded `192.0.2.0/24` as approved VPN. In Variant A (`ip_locations_A.csv`), `192.0.2.0/25` is Singapore (`1.3521, 103.8198`)—the external attacker IP! This actively suppressed the `sneha.nair` travel attack while ignoring legitimate VPN `172.16.50.0/24`. | Profile-aware dataset detection binds approved VPNs to `172.16.50.0/24` (A), `172.16.60.0/24` (B), or `192.0.2.0/24` (Synthetic). |
+| **8** | Off-Hours Timezone Logic (`rules.ts`, `baseline.ts`) | `detectUnusualHours` calculated hour using UTC `getUTCHours()` instead of the configured timezone (`Asia/Kolkata`). Normal logins at 10:00 AM IST converted to 04:30 UTC, causing 73 false alerts (< 06:00). | Implemented `getHourAndDayInTimezone()` to evaluate local hours in configured timezone (`Asia/Kolkata`). |
+| **9** | Standalone Single-CSV Upload Baseline (`pipeline.ts`) | Uploading a single test file (e.g. `TC01_A.csv`) without reference logs resulted in an empty baseline, causing normal logins to be flagged as new IP / location anomalies. | Added automatic baseline fallback in `analyze()` to train against official Days 1–5 baseline if no user baseline is provided. |
+| **10** | Missing Maintenance Windows (`pipeline.ts`, `TC06`) | Default configuration lacked `MW-A-01` and `MW-B-01` defined in official organizer configs, causing `helpdesk.svc` patching to trigger false `new_hosts` alerts. | Auto-configured `MW-A-01` (`2026-11-07T13:00:00+05:30` to `16:00:00+05:30`) and `MW-B-01` (`2026-11-14T07:30:00Z` to `10:30:00Z`) for helpdesk patch activity. |
 
 ---
 
@@ -211,22 +216,25 @@ During validation against the official datasets, 5 concrete mismatches/edge case
 Execute all tests and builds using standard commands:
 
 ```bash
-# 1. Run full test suite (249 tests passing)
+# 1. Run full test suite (264 tests passing across 20 test files)
 npm test -- --run
 
 # 2. Run specifically the official organizer dataset test suite (26 tests)
 npm test -- src/test/officialDatasetValidation.test.ts
 
-# 3. Run impossible travel tests (16 tests)
+# 3. Run upload workflow audit test suite (14 tests)
+npm test -- src/test/uploadWorkflowAudit.test.ts
+
+# 4. Run impossible travel tests (16 tests)
 npm test -- src/test/impossibleTravel.test.ts
 
-# 4. Verify TypeScript compilation and production bundle build
+# 5. Verify TypeScript compilation and production bundle build
 npm run build
 
-# 5. Verify linter (0 errors)
+# 6. Verify linter (0 errors)
 npm run lint
 
-# 6. Audit dependencies (0 vulnerabilities)
+# 7. Audit dependencies (0 vulnerabilities)
 npm audit
 ```
 
