@@ -219,11 +219,9 @@ In the development of SignalForge, AI coding assistants (including Anthropic Cla
 
 ## 10. Team Information & Contributions
 
-> **Note**: Team members please confirm and fill in specific roles below prior to final submission.
 
-- **[TEAM MEMBER 1 - NAME/GITHUB]**: Architecture, Ingestion Pipeline & Detection Rules Engine
-- **[TEAM MEMBER 2 - NAME/GITHUB]**: Mission 03 Investigation Studio, User-to-Host Graph & Visualizations
-- **[TEAM MEMBER 3 - NAME/GITHUB]**: Impossible-Travel Physics, Policy Suppression & Test Verification
+- **Jay Vardhan Surepally (Team Lead)**
+- **Rohith Madanala (Team Member)**
 
 ---
 
